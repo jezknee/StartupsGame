@@ -14,6 +14,16 @@ class Player:
         self._coins = coins
         self._hand = hand
         self._human = human
+    def take_card_from_pile(deck):
+        self._hand.append(deck[0])
+        del deck[0]
+    def take_card_from_market(market, company):
+        for c in market:
+            if c._company == company:
+                self._hand.append(c)
+                deck.remove(c)
+    def take_card_from_market(market):
+
     def __str__(self):
         return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Human: {self._human})"
 
@@ -22,16 +32,17 @@ class Card:
         self._company = company
     def __str__(self):
         return f"(Card Type: {self._company})"
-
+"""
 class Market:
     def __init__(self, cards):
         self._cards = cards
     def __str__(self):
         return f"(Cards: {self._cards})"
+"""
 
 default_companies = [["Giraffe Beer", 5],["Bowwow Games",6],["Flamingo Soft",7],["Octo Coffee", 8],["Hippo Powertech", 9],["Elephant Mars Travel", 10]]
 additional_companies = [["Woofy Railway", 11]]
-
+market = []
 
 def create_companies(starting_company_list):
     company_objects = []
@@ -90,6 +101,7 @@ def deal_hands(deck, cutoff, player_list):
             p._hand.append(deck[0])
             del deck[0]
         counter += 1
+
 
 if __name__ == "__main__":
     company_list = create_companies(default_companies)
