@@ -5,6 +5,7 @@ class Company:
         self._name = name
         self._total_shares = total_shares
         self._current_shares = current_shares
+
     def __str__(self):
         return f"(Name: {self._name}, Total Shares: {self._total_shares}, Current Shares: {self._current_shares})"
 
@@ -18,20 +19,36 @@ class Player:
         self._hand.append(deck[0])
         del deck[0]
     def take_card_from_market(market, company):
-        for c in market:
-            if c._company == company:
-                self._hand.append(c)
-                deck.remove(c)
-    def take_card_from_market(market):
-
+        if company_in_market(market, company):
+            completed = False
+            for c in market:
+                while completed == False:
+                    if c._company == company:
+                        self._hand.append(c)
+                        deck.remove(c)
+                        completed = True
+        else:
+            print("There isn't one of these in the market.")
     def __str__(self):
         return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Human: {self._human})"
 
 class Card:
     def __init__(self, company):
         self._company = company
+    def __eq__(self, other):
+        return self._name == other._name
     def __str__(self):
         return f"(Card Type: {self._company})"
+    def in_market(self, market):
+        in_market = False
+        completed = False
+        while completed == False:
+            for card in market:
+                if c._company == self._company:
+                    in_market = True
+            completed = True
+        return in_market
+
 """
 class Market:
     def __init__(self, cards):
@@ -101,6 +118,16 @@ def deal_hands(deck, cutoff, player_list):
             p._hand.append(deck[0])
             del deck[0]
         counter += 1
+
+def company_in_market(company_name):
+    in_market = False
+    completed = False
+    while completed == False:
+        for card in market:
+            if c._company == company_name:
+                in_market = True
+        completed = True
+    return in_market
 
 
 if __name__ == "__main__":
