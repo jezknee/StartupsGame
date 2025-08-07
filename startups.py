@@ -10,11 +10,12 @@ class Company:
         return f"(Name: {self._name}, Total Shares: {self._total_shares}, Current Shares: {self._current_shares})"
 
 class Player:
-    def __init__(self, number, coins, hand, shares, human):
+    def __init__(self, number, coins, hand, shares, chips, human):
         self._number = number
         self._coins = coins
         self._hand = hand
         self._shares = shares
+        self._chips = chips
         self._human = human
     def take_card_from_pile(self, deck):
         self._hand.append(deck[0])
@@ -44,8 +45,12 @@ class Player:
     def add_card_to_market(self, card, market):
         market.append(card)
         self._hand.remove(card)
+    def add_chip(self, company):
+        self._chips.append(company)
+    def remove_chip(self, company):
+        self._chips.remove(company)
     def __str__(self):
-        return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Shares: {self._shares}, Human: {self._human})"
+        return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Shares: {self._shares}, Anti-Monopoly Chips: {self._chips}, Human: {self._human})"
 
 class Card:
     def __init__(self, company, coins_on):
@@ -100,10 +105,10 @@ def create_players(no_players, no_humans):
     humans_created = 0
     while n <= no_players:
         if humans_created < no_humans:
-            player = Player(n, 10, [], [], True)
+            player = Player(n, 10, [], [], [], True)
             humans_created += 1
         elif humans_created == no_humans:
-            player = Player(n, 10, [], [], False)
+            player = Player(n, 10, [], [], [] False)
         player_list.append(player)
         n += 1
     return player_list
@@ -183,7 +188,6 @@ def putting_down_card(player, action, market):
         for c in player._hand:
             if c._company == card_company:
                 chosen_card = c
-                player._hand.remove(c)
                 break
         player.add_card_to_shares(chosen_card)
     elif action == 'market':
@@ -195,6 +199,11 @@ def putting_down_card(player, action, market):
                 player._hand.remove(c)
                 break
         player.add_card_to_market(chosen_card, market)
+
+
+
+def check_for_monopoly(player, company):
+
 
 
 if __name__ == "__main__":
@@ -228,6 +237,7 @@ if __name__ == "__main__":
                 put_down_action = input()
                 putting_down_card(p, put_down_action, market)
                 print(f"Your hand is now: {get_card_dictionary(p._hand)}")
+                print(f"Your shares are now: {get_card_dictionary(p._shares)}")
 
                 Finished = True
 
