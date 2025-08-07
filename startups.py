@@ -242,11 +242,14 @@ def putting_down_card(player, action, player_list, market, company_list):
 
 
 def check_for_monopoly(player_list, company):
+    # changed this logic because I was adding the first share before checking the monopoly
     monopoly = False
+    shares_total = 0
     for p in player_list:
         player_shares = company.get_share_count(p)
-        if player_shares > 0:
-            monopoly = True
+        shares_total += player_shares
+    if shares_total > 1:
+        monopoly = True
     return monopoly
 
 def find_monopoly_value(player_list, company):
