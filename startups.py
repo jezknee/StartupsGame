@@ -10,34 +10,41 @@ class Company:
         return f"(Name: {self._name}, Total Shares: {self._total_shares}, Current Shares: {self._current_shares})"
 
 class Player:
-    def __init__(self, number, coins, hand, human):
+    def __init__(self, number, coins, hand, shares, human):
         self._number = number
         self._coins = coins
         self._hand = hand
+        self._shares = shares
         self._human = human
     def take_card_from_pile(self, deck):
         self._hand.append(deck[0])
         del deck[0]
     def take_card_from_market(self, market):
         print("Which card?")
-        print(f"Type one of: {get_card_set(market)}")
+        print(f"Type one of these companies: {get_card_list(market)}")
         company_input = input()
+        print(f"Type the coins")
+        coins_input = int(input())
         if company_in_market(market, company_input):
             completed = False
             for c in market:
                 while completed == False:
-                    if c._company == company_input:
+                    if c._company == company_input and c._coins_on == coins_input:
                         self._hand.append(c)
-                        deck.remove(c)
+                        market.remove(c)
                         completed = True
         else:
             print("There isn't one of these in the market.")
+    def add_card_to_shares(self, card):
+        self._shares.append(card)
+        self._hand.remove(card)
     def __str__(self):
-        return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Human: {self._human})"
+        return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Shares: {self._shares}, Human: {self._human})"
 
 class Card:
-    def __init__(self, company):
+    def __init__(self, company, coins_on):
         self._company = company
+        self._coins_on = coins_on
     def __eq__(self, other):
         return self._company == other._company
     def __str__(self):
@@ -76,7 +83,7 @@ def create_deck(company_list):
     for company in company_list:
         n = 1
         while n <= company._total_shares:
-            new_card = Card(company._name)
+            new_card = Card(company._name, 0)
             deck.append(new_card)
             n += 1
     return deck
@@ -87,10 +94,10 @@ def create_players(no_players, no_humans):
     humans_created = 0
     while n <= no_players:
         if humans_created < no_humans:
-            player = Player(n, 10, [], True)
+            player = Player(n, 10, [], [], True)
             humans_created += 1
         elif humans_created == no_humans:
-            player = Player(n, 10, [], False)
+            player = Player(n, 10, [], [], False)
         player_list.append(player)
         n += 1
     return player_list
@@ -139,22 +146,29 @@ def get_card_dictionary(card_list):
         card_dictionary[company] = card_dictionary.get(company, 0) + 1
     return card_dictionary
 
-def get_card_set(card_list):
-    card_set = set()
+def get_card_list(card_list):
+    card_set = []
     for card in card_list:
         company = card._company
-        card_set.add(company)
-    return card_set 
-
+        coins = card._coins_on
+        card_set.add([company, coins_on])
+    return card_list 
 
 def picking_up_card(player, action, market, deck):
     if action == "deck":
-        player.take_card_from_pile(deck)
+        if player._coins >= len(market):
+            player.take_card_from_pile(deck)
+            if len(market) != 0:
+                for card in market:
+                    card._coins_on += 1
+                    player._coins -= len(market)
+        else:
+            print("You don't have enough money to pick up from the market.")
     elif action == "market":
         if len(market) != 0:
             player.take_card_from_market(market)
         else:
-            print("THere aren't any cards in the market right now.")
+            print("There aren't any cards in the market right now.")
 
 if __name__ == "__main__":
     company_list = create_companies(default_companies)
@@ -176,17 +190,19 @@ if __name__ == "__main__":
             if p._human:
                 print("Player 1: Your turn!")
                 print(f"Your hand is: {get_card_dictionary(p._hand)}")
+                print(f"You have {p._coins} coins")
                 print(f"The market is: {get_card_dictionary(market)}")
                 print("Pick up from the deck, or pick up from the market? Type 'deck' or 'market'.")
                 pick_up_action = input()
                 picking_up_card(p, pick_up_action, market, deck)
                 print(f"Your hand is now: {get_card_dictionary(p._hand)}")
+                print(f"You now have {p._coins} coins")
+                print("Put a card down in fron of you, or put a card into the market. Type 'front' or 'market'.")
 
                 Finished = True
 
 
 
-deck
 
 
         
