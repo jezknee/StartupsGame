@@ -11,9 +11,19 @@ class Company:
             if card._company == self._name:
                 share_count += 1
         return share_count
+
     def get_majority_holder(self, player_list):
-        for p in player_list:
-            pass
+        company_shares_dictionary = {p._name: p._shares[company._name] for p in player_list}
+    
+    if not company_shares_dictionary:
+        return None
+    
+    # Count how many times the maximum value appears
+    max_value = max(company_shares_dictionary.values())
+    max_count = list(company_shares_dictionary.values()).count(max_value)
+    
+    return max(company_shares_dictionary, key=company_shares_dictionary.get) if max_count == 1 else None
+
     def __eq__(self, other):
         return self._name == other._name
     def __hash__(self):
@@ -76,6 +86,9 @@ class Player:
             if chip._name == company_name:
                 has_monopoly = True 
         return has_monopoly
+    def put_hand_in_shares(self):
+        for card in self._hand:
+            self.add_card_to_shares(card)
     def __str__(self):
         return f"(Player Number: {self._number}, Current Coins: {self._coins}, Hand: {self._hand}, Shares: {self._shares}, Anti-Monopoly Chips: {self._chips}, Human: {self._human})"
 
@@ -368,6 +381,9 @@ def input_card_for_put_down(player):
 
     return card_company
 
+def empty_hands(player_list):
+    for player in player_list:
+        player.put_hand_in_shares()
 
         
 if __name__ == "__main__":
@@ -433,6 +449,29 @@ if __name__ == "__main__":
                     print(f"The market is now {get_card_dictionary(market)}")
                     print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
                     print(f"Player {p._number}'s anti-monopoly chips are now {p._chips}")
+    print("The game has finished. Each player's cards are added to their shares.")
+    empty_hands(player_list)
+    for p in player_list:
+        print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
+    for company in company_list:
+        majority_shareholder = get_majority_holder(player_list)
+        print(f"The majority shareholder in {company._name} is Player {majority_shareholder._number}")
+        total_coins = 0
+        if majority_shareholder != None:
+            for p in player_list:
+                if p != majority_shareholder:
+                    coins += int(get_card_dictionary(p._shares)[company])
+                    p._coins -= coins
+                    total_coins += coins
+            for q in player_list:
+                if q == majority_shareholder:
+                    total coins = total_coins * 3
+                    q._coins += total_coins
+        else:
+            break
+
+    for p in player_list:
+            print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
 
 
 
