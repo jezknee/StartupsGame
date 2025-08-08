@@ -108,6 +108,8 @@ class Market:
 default_companies = [["Giraffe Beer", 5],["Bowwow Games",6],["Flamingo Soft",7],["Octo Coffee", 8],["Hippo Powertech", 9],["Elephant Mars Travel", 10]]
 additional_companies = [["Woofy Railway", 11]]
 market = []
+player_actions = ["from deck", "to shares", "from market", "to market"]
+game_stages = ["pick_up", "put_down", "scoring"]
 
 def create_companies(starting_company_list):
     company_objects = []
@@ -192,8 +194,29 @@ def get_card_list(list):
         card_list.append([company, coins])
     return card_list 
 
+def check_pick_up_from_deck(deck):
+    check = True
+    if len(deck) == 0:
+        check = False
+    return check
+
+def check_pick_up_from_market(player, market):
+    check = False 
+    if len(market) > 0:
+        for card in market:
+            if check_pick_up_card(player, card):
+                check = True
+                break 
+    return check
+
+def check_pick_up_card(player, card):
+    check = True
+    if player.check_for_chip(card._company):
+        check = False
+    return check
+
 def picking_up_card(player, action, market, deck):
-    if action == "deck":
+    if action == "from deck":
         coins_required = len(market)
         for card in market:
             if player.check_for_chip(card._company):
@@ -207,14 +230,14 @@ def picking_up_card(player, action, market, deck):
                 player._coins -= coins_required
         else:
             print("You don't have enough money to pick up from the market.")
-    elif action == "market":
+    elif action == "from market":
         if len(market) != 0:
             player.take_card_from_market(market)
         else:
             print("There aren't any cards in the market right now.")
 
 def putting_down_card(player, action, player_list, market, company_list):
-    if action == 'front':
+    if action == 'to shares':
         print(f"Choose a card: {get_card_dictionary(player._hand)}")
         card_company = input()
         for c in player._hand:
@@ -230,7 +253,7 @@ def putting_down_card(player, action, player_list, market, company_list):
         player.add_chip(company_obj, player_list)
         for p in player_list:
             p.remove_chip(company_obj, player_list)
-    elif action == 'market':
+    elif action == 'to market':
         print(f"Choose a card: {get_card_dictionary(player._hand)}")
         card_company = input()
         for c in player._hand:
@@ -265,37 +288,43 @@ if __name__ == "__main__":
     company_list = create_companies(default_companies)
     player_list = create_players(4, 1)
     deck = create_deck(company_list)
-    #print_game_status(company_list)
-    #print_player_status(player_list)
     deck = prepare_deck(deck, 5)
     deal_hands(deck, 3, player_list)
-    #print_player_status(player_list)
     Finished = False
-    #print(get_card_dictionary(player_list[0]._hand))
     game_round = 0
     while not Finished:
         game_round += 1
-        #market_to_print = get_card_dictionary(market)
         print(f"Game Round: {game_round}")
-        for p in player_list:
-            if p._human:
-                print("Player 1: Your turn!")
-                print(f"Your hand is: {get_card_dictionary(p._hand)}")
-                print(f"You have {p._coins} coins")
-                print(f"The market is: {get_card_dictionary(market)}")
-                print("Pick up from the deck, or pick up from the market? Type 'deck' or 'market'.")
-                pick_up_action = input()
-                picking_up_card(p, pick_up_action, market, deck)
-                print(f"Your hand is now: {get_card_dictionary(p._hand)}")
-                print(f"You now have {p._coins} coins")
-                print("Put a card down in fron of you, or put a card into the market. Type 'front' or 'market'.")
-                put_down_action = input()
-                putting_down_card(p, put_down_action, player_list, market, company_list)
-                print(f"Your hand is now: {get_card_dictionary(p._hand)}")
-                print(f"Your shares are now: {get_card_dictionary(p._shares)}")
-                print(f"Your anti-monopoly chips are now {p._chips}")
+        if len(deck) == 0:
+            Finished = True
+        else:
+            for p in player_list:
+                if p._human:
+                    print(f"Player {p._number}: Your turn!")
+                    print(f"Your hand is: {get_card_dictionary(p._hand)}")
+                    print(f"You have {p._coins} coins")
+                    print(f"The market is: {get_card_dictionary(market)}")
+                    print("Pick up from the deck, or pick up from the market? Type 'from deck' or 'from market'.")
+                    pick_up_action = input()
+                    picking_up_card(p, pick_up_action, market, deck)
+                    print(f"Your hand is now: {get_card_dictionary(p._hand)}")
+                    print(f"You now have {p._coins} coins")
+                    print("Put a card into your shares, or put a card into the market. Type 'to shares' or 'to market'.")
+                    put_down_action = input()
+                    putting_down_card(p, put_down_action, player_list, market, company_list)
+                    print(f"Your hand is now: {get_card_dictionary(p._hand)}")
+                    print(f"Your shares are now: {get_card_dictionary(p._shares)}")
+                    print(f"Your anti-monopoly chips are now {p._chips}")
+                    print(f"The market is now {get_card_dictionary(market)}")
+                elif not p._human:
+                    pick_up_action = "from deck"
+                    picking_up_card(p, pick_up_action, market, deck)
+                    put_down_action = "to shares"
+                    putting_down_card(p, put_down_action, player_list, market, company_list)
+                    print(f"The market is now {get_card_dictionary(market)}")
+                    print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
+                    print(f"Player {p._number}'s anti-monopoly chips are now {p._chips}")
 
-                Finished = True
 
 
 
