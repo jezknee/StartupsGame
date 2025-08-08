@@ -108,7 +108,8 @@ class Market:
 default_companies = [["Giraffe Beer", 5],["Bowwow Games",6],["Flamingo Soft",7],["Octo Coffee", 8],["Hippo Powertech", 9],["Elephant Mars Travel", 10]]
 additional_companies = [["Woofy Railway", 11]]
 market = []
-player_actions = ["from deck", "to shares", "from market", "to market"]
+player_actions_pick_up = ["from deck", "from market"]
+player_actions_put_down = ["to shares", "to market"]
 game_stages = ["pick_up", "put_down", "scoring"]
 
 def create_companies(starting_company_list):
@@ -215,26 +216,62 @@ def check_pick_up_card(player, card):
         check = False
     return check
 
-def picking_up_card(player, action, market, deck):
-    if action == "from deck":
-        coins_required = len(market)
-        for card in market:
-            if player.check_for_chip(card._company):
-                coins_required -= 1
-        if player._coins >= coins_required:
-            player.take_card_from_pile(deck)
-            if coins_required != 0:
+def pick_up_action_choice(player, market, deck):
+    """Return list of valid pickup actions for the player"""
+    choices = []
+    
+    for action in player_actions_pick_up:
+        if action == "from deck":
+            if check_pick_up_from_deck(deck):
+                coins_required = len(market)
                 for card in market:
-                    if player.check_for_chip(card._company) == False:
-                        card._coins_on += 1
-                player._coins -= coins_required
-        else:
-            print("You don't have enough money to pick up from the market.")
-    elif action == "from market":
-        if len(market) != 0:
-            player.take_card_from_market(market)
-        else:
-            print("There aren't any cards in the market right now.")
+                    if player.check_for_chip(card._company):
+                        coins_required -= 1
+                if player._coins >= coins_required:
+                    choices.append(action)
+                    
+        elif action == "from market":
+            if check_pick_up_from_market(player, market):
+                choices.append(action)
+    
+    return choices
+
+def put_down_action_choice(player):
+    """Return list of valid putdown actions for the player"""
+    choices = []
+    
+    # Player can only put down cards if they have cards in hand
+    if len(player._hand) > 0:
+        for action in player_actions_put_down:
+            choices.append(action)  # Both "to shares" and "to market" are always valid if you have cards
+    
+    return choices
+
+
+def picking_up_card(player, action, market, deck):
+    choices = pick_up_action_choice(player, market, deck)
+    if action in choices:
+        if action == "from deck":
+            coins_required = len(market)
+            for card in market:
+                if player.check_for_chip(card._company):
+                    coins_required -= 1
+            if player._coins >= coins_required:
+                player.take_card_from_pile(deck)
+                if coins_required != 0:
+                    for card in market:
+                        if player.check_for_chip(card._company) == False:
+                            card._coins_on += 1
+                    player._coins -= coins_required
+            else:
+                print("You don't have enough money to pick up from the market.")
+        elif action == "from market":
+            if len(market) != 0:
+                player.take_card_from_market(market)
+            else:
+                print("There aren't any cards in the market right now.")
+    else:
+        print("You can't do that right now.")
 
 def putting_down_card(player, action, player_list, market, company_list):
     if action == 'to shares':
@@ -304,23 +341,41 @@ if __name__ == "__main__":
                     print(f"Your hand is: {get_card_dictionary(p._hand)}")
                     print(f"You have {p._coins} coins")
                     print(f"The market is: {get_card_dictionary(market)}")
-                    print("Pick up from the deck, or pick up from the market? Type 'from deck' or 'from market'.")
-                    pick_up_action = input()
-                    picking_up_card(p, pick_up_action, market, deck)
+                    while True:
+                        up_options = pick_up_action_choice(p, market, deck)
+                        print(f"Pick up from the deck, or pick up from the market? Type one of '{up_options}.")
+                        pick_up_action = input()
+                        if pick_up_action in up_options:
+                            picking_up_card(p, pick_up_action, market, deck)
+                            break 
+                        else:
+                            print("That's not an option. Please try again.")
                     print(f"Your hand is now: {get_card_dictionary(p._hand)}")
                     print(f"You now have {p._coins} coins")
-                    print("Put a card into your shares, or put a card into the market. Type 'to shares' or 'to market'.")
-                    put_down_action = input()
-                    putting_down_card(p, put_down_action, player_list, market, company_list)
+                    while True:
+                        down_options = put_down_action_choice(p)
+                        print(f"Put a card into your shares, or put a card into the market. Type one of {down_options}.")
+                        put_down_action = input()
+                        if put_down_action in down_options:
+                            putting_down_card(p, put_down_action, player_list, market, company_list)
+                            break
+                        else:
+                            print("That's not an option. Please try again.")
                     print(f"Your hand is now: {get_card_dictionary(p._hand)}")
                     print(f"Your shares are now: {get_card_dictionary(p._shares)}")
                     print(f"Your anti-monopoly chips are now {p._chips}")
                     print(f"The market is now {get_card_dictionary(market)}")
                 elif not p._human:
-                    pick_up_action = "from deck"
-                    picking_up_card(p, pick_up_action, market, deck)
-                    put_down_action = "to shares"
-                    putting_down_card(p, put_down_action, player_list, market, company_list)
+                    up_choices = pick_up_action_choice(p, market, deck)
+                    if len(up_choices) > 0:
+                        pick_up_action = random.choice(up_choices)
+                        picking_up_card(p, pick_up_action, market, deck)
+
+                    down_choices = put_down_action_choice(p)
+                    if len(down_choices) > 0:
+                        put_down_action = random.choice(down_choices)
+                        putting_down_card(p, put_down_action, player_list, market, company_list)
+                        
                     print(f"The market is now {get_card_dictionary(market)}")
                     print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
                     print(f"Player {p._number}'s anti-monopoly chips are now {p._chips}")
