@@ -14,8 +14,10 @@ class Company:
     def get_majority_holder(self, player_list):
         for p in player_list:
             pass
-     def __eq__(self, other):
+    def __eq__(self, other):
         return self._name == other._name
+    def __hash__(self):
+        return hash(self._name)  # hash based only on name
     def __str__(self):
         return f"(Name: {self._name}, Total Shares: {self._total_shares}, Current Shares: {self._current_shares})"
 
@@ -274,6 +276,7 @@ def picking_up_card(player, action, market, deck):
 
 def putting_down_card(player, action, player_list, market, company_list, card_company):
     if action == 'to shares':
+        chosen_card = None
         for c in player._hand:
             if c._company == card_company:
                 chosen_card = c
@@ -288,11 +291,15 @@ def putting_down_card(player, action, player_list, market, company_list, card_co
         for p in player_list:
             p.remove_chip(company_obj, player_list)
     elif action == 'to market':
+        chosen_card = None
         for c in player._hand:
             if c._company == card_company:
                 chosen_card = c
-                player._hand.remove(c)
                 break
+        if chosen_card is None:
+            print(f"No '{card_company}' in hand to put to market.")
+            return False
+
         player.add_card_to_market(chosen_card, market)
 
 
@@ -350,7 +357,9 @@ def input_card_for_put_down(player):
                 if c._company == card_company:
                     check = True
                     break 
-            if check == False:
+            if check:
+                break
+            else: 
                 print("That's not an option. Please try again.")
 
     elif not player._human:
@@ -381,6 +390,8 @@ if __name__ == "__main__":
                     print(f"Your hand is: {get_card_dictionary(p._hand)}")
                     print(f"You have {p._coins} coins")
                     print(f"The market is: {get_card_dictionary(market)}")
+                    print(f"Your shares are: {get_card_dictionary(p._shares)}")
+                    print(f"Your anti-monopoly chips are now {p._chips}")
                     while True:
                         up_options = pick_up_action_choice(p, market, deck)
                         print(f"Pick up from the deck, or pick up from the market? Type one of '{up_options}.")
@@ -407,6 +418,7 @@ if __name__ == "__main__":
                     print(f"Your anti-monopoly chips are now {p._chips}")
                     print(f"The market is now {get_card_dictionary(market)}")
                 elif not p._human:
+                    print(f"Player {p._number}'s turn!")
                     up_choices = pick_up_action_choice(p, market, deck)
                     if len(up_choices) > 0:
                         pick_up_action = random.choice(up_choices)
