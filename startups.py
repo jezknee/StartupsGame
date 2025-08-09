@@ -43,7 +43,6 @@ class Player:
         self._hand.append(deck[0])
         del deck[0]
     def take_card_from_market(self, market, company_name, coins_amount):
-        
         if company_in_market(market, company_name):
             if self.check_for_chip(company_name) == False:  
                 completed = False
@@ -201,6 +200,13 @@ def get_card_dictionary(card_list):
         card_dictionary[company] = card_dictionary.get(company, 0) + 1
     return card_dictionary
 
+def get_company_set(player):
+    company_set = set()
+    for company in player._chips:
+        company_name = company._name
+        company_set.add(company_name)
+    return company_set
+
 def get_card_list(list):
     card_list = []
     for card in list:
@@ -246,7 +252,13 @@ def pick_up_action_choice(player, market, deck):
                     
         elif action == "from market":
             if check_pick_up_from_market(player, market):
-                choices.append(action)
+                valid_cards_exist = False
+                for card in market:
+                    if check_pick_up_card(player, card):
+                        valid_cards_exist = True
+                        break
+                if valid_cards_exist:
+                    choices.append(action)
     
     return choices
 
@@ -415,7 +427,7 @@ if __name__ == "__main__":
                     print(f"You have {p._coins} coins")
                     print(f"The market is: {get_card_dictionary(market)}")
                     print(f"Your shares are: {get_card_dictionary(p._shares)}")
-                    print(f"Your anti-monopoly chips are now {p._chips}")
+                    print(f"Your anti-monopoly chips are now {get_company_set(p)}")
                     while True:
                         up_options = pick_up_action_choice(p, market, deck)
                         print(f"Pick up from the deck, or pick up from the market? Type one of '{up_options}.")
@@ -439,7 +451,7 @@ if __name__ == "__main__":
                             print("That's not an option. Please try again.")
                     print(f"Your hand is now: {get_card_dictionary(p._hand)}")
                     print(f"Your shares are now: {get_card_dictionary(p._shares)}")
-                    print(f"Your anti-monopoly chips are now {p._chips}")
+                    print(f"Your anti-monopoly chips are now {get_company_set(p)}")
                     print(f"The market is now {get_card_dictionary(market)}")
                 elif not p._human:
                     print(f"Player {p._number}'s turn!")
@@ -456,7 +468,7 @@ if __name__ == "__main__":
 
                     print(f"The market is now {get_card_dictionary(market)}")
                     print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
-                    print(f"Player {p._number}'s anti-monopoly chips are now {p._chips}")
+                    print(f"Player {p._number}'s anti-monopoly chips are now {get_company_set(p)}")
     print("The game has finished. Each player's cards are added to their shares.")
     empty_hands(player_list)
     for p in player_list:
@@ -487,7 +499,9 @@ if __name__ == "__main__":
     winner = find_winner_simple(player_list)
     print(f"The winner is: {winner._number}")
             
-
+# there's a bug left
+# if you put down a card you have the chip for, it tells you you can't then goes straight to pick up
+# it also stopped at Player 3's turn on round 4 - presumably there were no actions they could do
 
 
 
