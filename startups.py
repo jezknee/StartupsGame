@@ -42,19 +42,32 @@ class Player:
     def take_card_from_pile(self, deck):
         self._hand.append(deck[0])
         del deck[0]
-    def take_card_from_market(self, market, company_name, coins_amount):
+    def take_card_from_market(self, market, company_name):
+        # take card of given company with most coins
         if company_in_market(market, company_name):
-            if self.check_for_chip(company_name) == False:  
+            if not self.check_for_chip(company_name):
+                best_card = None 
+                max_coins = -1
                 completed = False
                 for c in market:
-                    while completed == False:
-                        if c._company == company_name and c._coins_on == coins_amount:
-                            c_zero = c
-                            self._coins += c._coins_on
-                            c_zero._coins_on = 0
-                            self._hand.append(c_zero)
-                            market.remove(c)
-                            completed = True
+                    """while completed == False:"""
+                    if c._company == company_name and c._coins_on > max_coins:
+                        best_card = c
+                        max_coins = c._coins_on
+                
+                if best_card:
+                    self._coins += best_card._coins_on
+                    market.remove(best_card)
+                    best_card._coins_on = 0
+                    self._hand.append(best_card)
+                    """
+                    c_zero = c
+                    self._coins += c._coins_on
+                    c_zero._coins_on = 0
+                    self._hand.append(c_zero)
+                    market.remove(c)
+                    completed = True
+                    """
             elif self.check_for_chip(company_name):
                 print("You've got the anti-monopoly chip for that company, you can't play it")
         else:
@@ -286,15 +299,15 @@ def picking_up_card(player, action, market, deck):
                 player.take_card_from_pile(deck)
                 if coins_required != 0:
                     for card in market:
-                        if player.check_for_chip(card._company) == False:
+                        if not player.check_for_chip(card._company):
                             card._coins_on += 1
                     player._coins -= coins_required
             else:
                 print("You don't have enough money to pick up from the market.")
         elif action == "from market":
             if len(market) != 0:
-                company_input, coins_input = input_card_for_pick_up(player, market)
-                player.take_card_from_market(market, company_input, coins_input)
+                company_input = input_card_for_pick_up(player, market)
+                player.take_card_from_market(market, company_input)
             else:
                 print("There aren't any cards in the market right now.")
     else:
@@ -358,13 +371,13 @@ def input_card_for_pick_up(player, market):
     if player._human:
         print(f"Type one of these companies: {get_card_list(card_choices)}")
         company_input = input()
-        print(f"Type the coins")
-        coins_input = int(input())
+        #print(f"Type the coins")
+        #coins_input = int(input())
     elif not player._human:
         card_to_choose = random.choice(card_choices)
         company_input = card_to_choose._company
-        coins_input = card_to_choose._coins_on
-    return company_input, coins_input
+        #coins_input = card_to_choose._coins_on
+    return company_input #, coins_input
 
 def input_card_for_put_down(player):
     card_choices = []
