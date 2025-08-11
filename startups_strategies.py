@@ -1,4 +1,5 @@
 import random
+import time
 
 class Company:
     def __init__(self, name, total_shares, current_shares):
@@ -455,127 +456,91 @@ def human_turn_start_messages(p, market):
     print(f"Your shares are: {get_card_dictionary(p._shares)}")
     print(f"Your anti-monopoly chips are now {get_company_set(p)}")
 
+def human_turn_end_messages(p, market):
+    print(f"Your hand is now: {get_card_dictionary(p._hand)}")
+    print(f"Your shares are now: {get_card_dictionary(p._shares)}")
+    print(f"Your anti-monopoly chips are now {get_company_set(p)}")
+    print(f"The market is now {get_card_dictionary(market)}")
+
+def ai_end_turn_messages(p, market):
+    print(f"The market is now {get_card_dictionary(market)}")
+    print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
+    print(f"Player {p._number}'s anti-monopoly chips are now {get_company_set(p)}")
+
 def human_pickup_strategy(player, market, deck):
-    choices = pick_up_action_choice(player, market, deck)
-    print(f"Pick up from: {choices}")
+    human_turn_start_messages(p, market)
+    up_options = pick_up_action_choice(player, market, deck)
+    print(f"Pick up from the deck, or pick up from the market? Type one of {up_options}.")
     while True:
         choice = input().strip().lower()
-        if choice in choices:
+        if choice in up_options:
             if choice == "from market":
                 target_company = input_card_for_pick_up(player, market)
                 return Action("pickup_market", target_company)
             else:
                 return Action("pickup_deck")
-        print("Invalid choice.")
+        else:
+            print("That's not an option. Please try again.")
+    print(f"Your hand is now: {get_card_dictionary(player._hand)}")
+    print(f"You now have {player._coins} coins")
 
-def human_putdown_strategy(player):
-    choices = put_down_action_choice(player)
-    print(f"Put down: {choices}")
+def human_putdown_strategy(player, market):
+    down_options = put_down_action_choice(player)
+    print(f"Put a card into your shares, or put a card into the market. Type one of {down_options}.")
     while True:
         choice = input().strip().lower()
-        if choice in choices:
+        if choice in down_options:
             target_company = input_card_for_put_down(player)
             return Action("putdown_" + choice.replace(" ", "_"), target_company)
-        print("Invalid choice.")
+        else:
+            print("That's not an option. Please try again.")
+    human_turn_end_messages(p, market)
 
 def random_ai_pickup_strategy(player, market, deck):
+    #print(f"Player {p._number}'s turn!")
     choices = pick_up_action_choice(player, market, deck)
     if not choices:
+        print(f"Player {player._number} cannot pick up any cards.")
         return None
     choice = random.choice(choices)
     if choice == "from market":
         target_company = input_card_for_pick_up(player, market)
+        print(f"Player {player._number} picks up from market: {target_company}")
         return Action("pickup_market", target_company)
     else:
+        print(f"Player {player._number} picks up from deck.")
         return Action("pickup_deck")
 
-def random_ai_putdown_strategy(player):
+def random_ai_putdown_strategy(player, market):
+    time.sleep(1)
     choices = put_down_action_choice(player)
     if not choices:
+        print(f"Player {player._number} cannot put down any cards.")
         return None
-    choice = random.choice(choices)
-    target_company = input_card_for_put_down(player)
-    return Action("putdown_" + choice.replace(" ", "_"), target_company)
+    while True:
+        choice = random.choice(choices)
+        target_company = input_card_for_put_down(player)
+        print(f"Player {player._number} puts down {target_company} to {choice}.")
+        return Action("putdown_" + choice.replace(" ", "_"), target_company)
+    time.sleep(1)
+    
 
 def execute_pickup(player, action, market, deck):
     if action.type == "pickup_deck":
         picking_up_card(player, "from deck", market, deck)
     elif action.type == "pickup_market":
         picking_up_card(player, "from market", market, deck)
+    
 
 def execute_putdown(player, action, player_list, market, company_list):
     if action.type == "putdown_to_shares":
         putting_down_card(player, "to shares", player_list, market, company_list, action.target)
     elif action.type == "putdown_to_market":
         putting_down_card(player, "to market", player_list, market, company_list, action.target)
+    ai_end_turn_messages(player, market)
+    time.sleep(5)
 
-        
-if __name__ == "__main__":
-    company_list = create_companies(default_companies)
-    player_list = create_players(4, 1)
-    deck = create_deck(company_list)
-    deck = prepare_deck(deck, 5)
-    deal_hands(deck, 3, player_list)
-    Finished = False
-    game_round = 0
-    while not Finished:
-        game_round += 1
-        print(f"Game Round: {game_round}")
-        if len(deck) == 0:
-            Finished = True
-        else:
-            for p in player_list:
-                if p._human:
-                    human_turn_start_messages(p, market)
-                    """
-                    print(f"Player {p._number}: Your turn!")
-                    print(f"Your hand is: {get_card_dictionary(p._hand)}")
-                    print(f"You have {p._coins} coins")
-                    print(f"The market is: {get_card_dictionary(market)}")
-                    print(f"Your shares are: {get_card_dictionary(p._shares)}")
-                    print(f"Your anti-monopoly chips are now {get_company_set(p)}")
-                    """
-                    while True:
-                        up_options = pick_up_action_choice(p, market, deck)
-                        print(f"Pick up from the deck, or pick up from the market? Type one of '{up_options}.")
-                        pick_up_action = input()
-                        if pick_up_action in up_options:
-                            picking_up_card(p, pick_up_action, market, deck)
-                            break 
-                        else:
-                            print("That's not an option. Please try again.")
-                    print(f"Your hand is now: {get_card_dictionary(p._hand)}")
-                    print(f"You now have {p._coins} coins")
-                    while True:
-                        down_options = put_down_action_choice(p)
-                        print(f"Put a card into your shares, or put a card into the market. Type one of {down_options}.")
-                        put_down_action = input()
-                        if put_down_action in down_options:
-                            card_company_input = input_card_for_put_down(p)
-                            putting_down_card(p, put_down_action, player_list, market, company_list, card_company_input)
-                            break
-                        else:
-                            print("That's not an option. Please try again.")
-                    print(f"Your hand is now: {get_card_dictionary(p._hand)}")
-                    print(f"Your shares are now: {get_card_dictionary(p._shares)}")
-                    print(f"Your anti-monopoly chips are now {get_company_set(p)}")
-                    print(f"The market is now {get_card_dictionary(market)}")
-                elif not p._human:
-                    print(f"Player {p._number}'s turn!")
-                    up_choices = pick_up_action_choice(p, market, deck)
-                    if len(up_choices) > 0:
-                        pick_up_action = random.choice(up_choices)
-                        picking_up_card(p, pick_up_action, market, deck)
-
-                    down_choices = put_down_action_choice(p)
-                    if len(down_choices) > 0:
-                        put_down_action = random.choice(down_choices)
-                        card_company_input = input_card_for_put_down(p)
-                        putting_down_card(p, put_down_action, player_list, market, company_list, card_company_input)
-
-                    print(f"The market is now {get_card_dictionary(market)}")
-                    print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
-                    print(f"Player {p._number}'s anti-monopoly chips are now {get_company_set(p)}")
+def end_game_and_score(player_list, company_list):
     print("The game has finished. Each player's cards are added to their shares.")
     empty_hands(player_list)
     for p in player_list:
@@ -605,10 +570,64 @@ if __name__ == "__main__":
     
     winner = find_winner_simple(player_list)
     print(f"The winner is: {winner._number}")
+
+        
+if __name__ == "__main__":
+    company_list = create_companies(default_companies)
+    player_list = create_players(4, 1)
+    deck = create_deck(company_list)
+    deck = prepare_deck(deck, 5)
+    deal_hands(deck, 3, player_list)
+
+    Finished = False
+    game_round = 0
+    while not Finished:
+        game_round += 1
+        print(f"Game Round: {game_round}")
+        if len(deck) == 0:
+            Finished = True
+        else:
+            for p in player_list:
+                print(f"--- Player {p._number}'s turn ---")
+        
+                pickup_action = p.pickup_strategy(p, market, deck)
+                if pickup_action:
+                    execute_pickup(p, pickup_action, market, deck)
+
+                putdown_action = p.putdown_strategy(p, market)
+                if putdown_action:
+                    execute_putdown(p, putdown_action, player_list, market, company_list)
+
+    print("The game has finished. Each player's cards are added to their shares.")
+    empty_hands(player_list)
+    for p in player_list:
+        print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
+    for company in company_list:
+        majority_shareholder = company.get_majority_holder(player_list)
+        if majority_shareholder is not None:
+            print(f"The majority shareholder in {company._name} is Player {majority_shareholder._number}")
+            total_coins = 0
             
-# there's a bug left
-# if you put down a card you have the chip for, it tells you you can't then goes straight to pick up
-# it also stopped at Player 3's turn on round 4 - presumably there were no actions they could do
+            for p in player_list:
+                if p != majority_shareholder:
+                    player_shares_dict = get_card_dictionary(p._shares)
+                    if company._name in player_shares_dict:  # Check if company exists in player's shares
+                        coins = player_shares_dict[company._name]  # Use company._name, not company_name
+                        p._coins -= coins
+                        total_coins += coins
+            
+            # Give 3x the collected coins to majority shareholder
+            total_coins = total_coins * 3
+            majority_shareholder._coins += total_coins
+        else:
+            print(f"No majority shareholder for {company._name}.")
+
+    for p in player_list:
+            print(f"Player {p._number}'s coins are now: {p._coins}")
+    
+    winner = find_winner_simple(player_list)
+    print(f"The winner is: {winner._number}")
+
 
 
 
