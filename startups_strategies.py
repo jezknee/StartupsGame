@@ -417,23 +417,13 @@ def input_card_for_put_down(player):
 
     return card_company
 
-def create_game(default_companies):
+def create_game(default_companies, no_players, no_humans):
     company_list = create_companies(default_companies)
-    player_list = create_players(4, 1)
+    player_list = create_players(no_players, no_humans)
     deck = create_deck(company_list)
     deck = prepare_deck(deck, 5)
     deal_hands(deck, 3, player_list)
     return company_list, player_list, deck
-"""
-def put_down_turn_human(player):
-
-def put_down_turn_cpu(player):
-
-def pick_up_turn_human(player):
-
-def pick_up_turn_cpu(player):
-"""
-
 
 
 def empty_hands(player_list):
@@ -481,10 +471,10 @@ def human_pickup_strategy(player, market, deck):
                 return Action("pickup_deck")
         else:
             print("That's not an option. Please try again.")
-    print(f"Your hand is now: {get_card_dictionary(player._hand)}")
-    print(f"You now have {player._coins} coins")
 
 def human_putdown_strategy(player, market):
+    print(f"Your hand is now: {get_card_dictionary(player._hand)}")
+    print(f"You now have {player._coins} coins")
     down_options = put_down_action_choice(player)
     print(f"Put a card into your shares, or put a card into the market. Type one of {down_options}.")
     while True:
@@ -545,10 +535,12 @@ def end_game_and_score(player_list, company_list):
     empty_hands(player_list)
     for p in player_list:
         print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
+        time.sleep(1)
     for company in company_list:
         majority_shareholder = company.get_majority_holder(player_list)
         if majority_shareholder is not None:
             print(f"The majority shareholder in {company._name} is Player {majority_shareholder._number}")
+            time.sleep(1)
             total_coins = 0
             
             for p in player_list:
@@ -564,20 +556,25 @@ def end_game_and_score(player_list, company_list):
             majority_shareholder._coins += total_coins
         else:
             print(f"No majority shareholder for {company._name}.")
+            time.sleep(1)
 
     for p in player_list:
             print(f"Player {p._number}'s coins are now: {p._coins}")
+            time.sleep(1)
     
     winner = find_winner_simple(player_list)
     print(f"The winner is: {winner._number}")
 
         
 if __name__ == "__main__":
+    #create_game(company_list, 4, 1)
+    
     company_list = create_companies(default_companies)
     player_list = create_players(4, 1)
     deck = create_deck(company_list)
     deck = prepare_deck(deck, 5)
     deal_hands(deck, 3, player_list)
+    
 
     Finished = False
     game_round = 0
@@ -598,36 +595,7 @@ if __name__ == "__main__":
                 if putdown_action:
                     execute_putdown(p, putdown_action, player_list, market, company_list)
 
-    print("The game has finished. Each player's cards are added to their shares.")
-    empty_hands(player_list)
-    for p in player_list:
-        print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
-    for company in company_list:
-        majority_shareholder = company.get_majority_holder(player_list)
-        if majority_shareholder is not None:
-            print(f"The majority shareholder in {company._name} is Player {majority_shareholder._number}")
-            total_coins = 0
-            
-            for p in player_list:
-                if p != majority_shareholder:
-                    player_shares_dict = get_card_dictionary(p._shares)
-                    if company._name in player_shares_dict:  # Check if company exists in player's shares
-                        coins = player_shares_dict[company._name]  # Use company._name, not company_name
-                        p._coins -= coins
-                        total_coins += coins
-            
-            # Give 3x the collected coins to majority shareholder
-            total_coins = total_coins * 3
-            majority_shareholder._coins += total_coins
-        else:
-            print(f"No majority shareholder for {company._name}.")
-
-    for p in player_list:
-            print(f"Player {p._number}'s coins are now: {p._coins}")
-    
-    winner = find_winner_simple(player_list)
-    print(f"The winner is: {winner._number}")
-
+    end_game_and_score(player_list, company_list)
 
 
 
