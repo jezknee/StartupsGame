@@ -407,6 +407,25 @@ def input_card_for_put_down(player):
 
     return card_company
 
+def create_game(default_companies):
+    company_list = create_companies(default_companies)
+    player_list = create_players(4, 1)
+    deck = create_deck(company_list)
+    deck = prepare_deck(deck, 5)
+    deal_hands(deck, 3, player_list)
+    return company_list, player_list, deck
+
+def put_down_turn_human(player):
+
+def put_down_turn_cpu(player):
+
+def pick_up_turn_human(player):
+
+def pick_up_turn_cpu(player):
+
+
+
+
 def empty_hands(player_list):
     for player in player_list:
         player.put_hand_in_shares()
