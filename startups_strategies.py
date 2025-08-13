@@ -540,6 +540,7 @@ def count_card(player, company: str):
 def avoid_loss_ai_pickup_strategy(player, market, deck, player_list):
     #time.sleep(1)
     choices = return_all_pickup_choices(player, market)
+    print(choices)
     good_choices = []
     bad_choices = []
     for c in choices:
@@ -547,7 +548,7 @@ def avoid_loss_ai_pickup_strategy(player, market, deck, player_list):
             continue
         if c.type == "pickup_deck":
             good_choices.append(c)
-        if c.target is not None:
+        if c.type == "pickup_market" and c.target is not None:
             company_name = c.target
             count_card_for_player = count_card(player, company_name)
             for p in player_list:
@@ -556,6 +557,8 @@ def avoid_loss_ai_pickup_strategy(player, market, deck, player_list):
                     bad_choices.append(c)
                 else:
                     good_choices.append(c)
+    print(good_choices)
+    print(bad_choices)
     if len(good_choices) == 0:
         good_choices = bad_choices
 
@@ -576,14 +579,19 @@ def avoid_loss_ai_putdown_strategy(player, market, deck, player_list):
             if c.type == "putdown_market":
                 if shares_dict.get(company_name, 0) == count_card_for_player - 1:
                     bad_choices.append(c)
+                else:
+                    good_choices.append(c)
             elif c.type == "putdown_shares":
                 if shares_dict.get(company_name, 0) > count_card_for_player:
                     bad_choices.append(c)
+                else:
+                    good_choices.append(c)
             else:
                 good_choices.append(c)
     if len(good_choices) == 0:
         good_choices = bad_choices
-        choice = random.choice(good_choices)
+    
+    choice = random.choice(good_choices)
     return choice
 
 def execute_pickup(player, action, market, deck):
