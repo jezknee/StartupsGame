@@ -151,6 +151,7 @@ def create_players(no_players, no_humans):
     player_list = []
     n = 1
     humans_created = 0
+    assign_avoid_loss_strategy_to = random.choice([2,4])
     while n <= no_players:
         if humans_created < no_humans:
             player = Player(n, 10, [], [], set(), True)
@@ -159,8 +160,12 @@ def create_players(no_players, no_humans):
             humans_created += 1
         elif humans_created == no_humans:
             player = Player(n, 10, [], [], set(), False)
-            player.pickup_strategy = random_ai_pickup_strategy
-            player.putdown_strategy = random_ai_putdown_strategy
+            if n == assign_avoid_loss_strategy_to:
+                player.pickup_strategy = avoid_loss_ai_pickup_strategy
+                player.putdown_strategy = avoid_loss_ai_putdown_strategy
+            else:
+                player.pickup_strategy = random_ai_pickup_strategy
+                player.putdown_strategy = random_ai_putdown_strategy
         player_list.append(player)
         n += 1
     return player_list
@@ -374,20 +379,16 @@ def input_card_for_pick_up(player, market):
     return company_input
 
 def return_all_pickup_choices(player, market):
-    card_choices = []
     actions = []
     coins_required = len(market)
     for card in market:
-        if check_pick_up_card(player, card):
-            card_choices.append(card)
         if player.check_for_chip(card._company):
             coins_required -= 1
     if player._coins >= coins_required:
-        deck_pickup = Action("pickup_deck")
-        actions.append(deck_pickup)
-    for c in card_choices:
-        a = Action("pickup_market",c)
-        actions.append(a)
+        actions.append(Action("pickup_deck"))  # target stays None by design
+    for card in market:
+        if check_pick_up_card(player, card):
+            actions.append(Action("pickup_market", card._company))  # <-- string
     return actions
 
 def return_all_putdown_choices(player, market):
@@ -397,8 +398,8 @@ def return_all_putdown_choices(player, market):
         hand_cards.append(c)
     
     for s in hand_cards:
-        Actions.append(Action("putdown_shares", s))
-        Actions.append(Action("putdown_market", s))
+        actions.append(Action("putdown_shares", s))
+        actions.append(Action("putdown_market", s))
     return actions
 
 def input_card_for_put_down(player):
@@ -468,8 +469,8 @@ def ai_end_turn_messages(p, market):
     print(f"Player {p._number}'s shares are now: {get_card_dictionary(p._shares)}")
     print(f"Player {p._number}'s anti-monopoly chips are now {get_company_set(p)}")
 
-def human_pickup_strategy(player, market, deck):
-    human_turn_start_messages(p, market)
+def human_pickup_strategy(player, market, deck, player_list):
+    human_turn_start_messages(player, market)
     up_options = pick_up_action_choice(player, market, deck)
     print(f"Pick up from the deck, or pick up from the market? Type one of {up_options}.")
     while True:
@@ -483,7 +484,7 @@ def human_pickup_strategy(player, market, deck):
         else:
             print("That's not an option. Please try again.")
 
-def human_putdown_strategy(player, market):
+def human_putdown_strategy(player, market, deck, player_list):
     print(f"Your hand is now: {get_card_dictionary(player._hand)}")
     print(f"You now have {player._coins} coins")
     down_options = put_down_action_choice(player)
@@ -497,7 +498,7 @@ def human_putdown_strategy(player, market):
             print("That's not an option. Please try again.")
     human_turn_end_messages(p, market)
 
-def random_ai_pickup_strategy(player, market, deck):
+def random_ai_pickup_strategy(player, market, deck, player_list):
     choices = pick_up_action_choice(player, market, deck)
     if not choices:
         print(f"Player {player._number} cannot pick up any cards.")
@@ -511,8 +512,8 @@ def random_ai_pickup_strategy(player, market, deck):
         print(f"Player {player._number} picks up from deck.")
         return Action("pickup_deck")
 
-def random_ai_putdown_strategy(player, market):
-    time.sleep(1)
+def random_ai_putdown_strategy(player, market, deck, player_list):
+    #time.sleep(1)
     choices = put_down_action_choice(player)
     if not choices:
         print(f"Player {player._number} cannot put down any cards.")
@@ -522,34 +523,68 @@ def random_ai_putdown_strategy(player, market):
         target_company = input_card_for_put_down(player)
         print(f"Player {player._number} puts down {target_company} {choice}.")
         return Action("putdown_" + choice.replace(" ", "_"), target_company)
-    time.sleep(1)
+    #time.sleep(1)
 
-def count_card(player, company):
-    count_card = 0
-    for s in p._shares:
-        if s == company:
-            count_card += 1
-    for h in p._hand:
-        if h == company:
-            count_card += 1
-    return count_card
+def count_card(player, company: str):
+    count_card_in_shares = 0
+    count_card_in_hand = 0
+    for s in player._shares:
+        if s._company == company:
+            count_card_in_shares += 1
+    for h in player._hand:
+        # may want to make the hand a list of card objects in future, quite confusing
+        if h._company == company:
+            count_card_in_hand += 1
+    return count_card_in_shares + count_card_in_hand
 
-def avoid_loss_ai_pickup_strategy(player, player_list):
-    time.sleep(1)
+def avoid_loss_ai_pickup_strategy(player, market, deck, player_list):
+    #time.sleep(1)
     choices = return_all_pickup_choices(player, market)
-    if not choices:
-        print(f"Player {player._number} cannot put down any cards.")
-        return None
+    good_choices = []
+    bad_choices = []
     for c in choices:
-        if c != None:
-            count_card_for_player = count_card(c)
+        if c.target is None:
+            continue
+        if c.type == "pickup_deck":
+            good_choices.append(c)
+        if c.target is not None:
+            company_name = c.target
+            count_card_for_player = count_card(player, company_name)
             for p in player_list:
-                if int(get_card_dictionary(p._shares)[c]) > (count_card_for_player + 1):
-                    choices.remove(c)
-    choice = random.choice(choices)
+                shares_dict = get_card_dictionary(p._shares)
+                if shares_dict.get(company_name, 0) > count_card_for_player + 1:
+                    bad_choices.append(c)
+                else:
+                    good_choices.append(c)
+    if len(good_choices) == 0:
+        good_choices = bad_choices
+
+    choice = random.choice(good_choices)
     return choice
 
-#def avoid_loss_ai_putdown_strategy():
+def avoid_loss_ai_putdown_strategy(player, market, deck, player_list):
+    choices = return_all_putdown_choices(player, market)
+    #good_choices.append(c)
+    #if c.target is not None:
+    good_choices = []
+    bad_choices = []
+    for c in choices:
+        company_name = c.target
+        count_card_for_player = count_card(player, company_name)
+        for p in player_list:
+            shares_dict = get_card_dictionary(p._shares)
+            if c.type == "putdown_market":
+                if shares_dict.get(company_name, 0) == count_card_for_player - 1:
+                    bad_choices.append(c)
+            elif c.type == "putdown_shares":
+                if shares_dict.get(company_name, 0) > count_card_for_player:
+                    bad_choices.append(c)
+            else:
+                good_choices.append(c)
+    if len(good_choices) == 0:
+        good_choices = bad_choices
+        choice = random.choice(good_choices)
+    return choice
 
 def execute_pickup(player, action, market, deck):
     if action.type == "pickup_deck":
@@ -563,7 +598,7 @@ def execute_putdown(player, action, player_list, market, company_list):
     elif action.type == "putdown_to_market":
         putting_down_card(player, "to market", player_list, market, company_list, action.target)
     ai_end_turn_messages(player, market)
-    time.sleep(5)
+    time.sleep(1)
 
 def end_game_and_score(player_list, company_list):
     print("The game has finished. Each player's cards are added to their shares.")
@@ -621,11 +656,11 @@ if __name__ == "__main__":
             for p in player_list:
                 print(f"--- Player {p._number}'s turn ---")
         
-                pickup_action = p.pickup_strategy(p, market, deck)
+                pickup_action = p.pickup_strategy(p, market, deck, player_list)
                 if pickup_action:
                     execute_pickup(p, pickup_action, market, deck)
 
-                putdown_action = p.putdown_strategy(p, market)
+                putdown_action = p.putdown_strategy(p, market, deck, player_list)
                 if putdown_action:
                     execute_putdown(p, putdown_action, player_list, market, company_list)
 
