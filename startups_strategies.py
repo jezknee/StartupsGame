@@ -342,7 +342,6 @@ def putting_down_card(player, action, player_list, market, company_list, card_co
         if chosen_card is None:
             print(f"No '{card_company}' in hand to put to market.")
             return False
-
         player.add_card_to_market(chosen_card, market)
 
 def check_for_monopoly(player_list, company):
@@ -496,7 +495,8 @@ def human_putdown_strategy(player, market, deck, player_list):
         choice = input().strip().lower()
         if choice in down_options:
             target_company = input_card_for_put_down(player)
-            return Action("putdown_" + choice.replace(" ", "_"), target_company)
+            action_type = "putdown_shares" if choice == "to shares" else "putdown_market"
+            return Action(action_type, target_company)
         else:
             print("That's not an option. Please try again.")
     human_turn_end_messages(p, market)
@@ -509,8 +509,8 @@ def random_ai_pickup_strategy(player, market, deck, player_list):
     choice = random.choice(choices)
     if choice == "from market":
         target_company = input_card_for_pick_up(player, market)
-        print(f"Player {player._number} picks up from market: {target_company}")
-        return Action("pickup_market", target_company)
+        action_type = "putdown_shares" if choice == "to shares" else "putdown_market"
+        return Action(action_type, target_company)
     else:
         print(f"Player {player._number} picks up from deck.")
         return Action("pickup_deck")
@@ -525,7 +525,8 @@ def random_ai_putdown_strategy(player, market, deck, player_list):
         choice = random.choice(choices)
         target_company = input_card_for_put_down(player)
         print(f"Player {player._number} puts down {target_company} {choice}.")
-        return Action("putdown_" + choice.replace(" ", "_"), target_company)
+        action_type = "putdown_shares" if choice == "to shares" else "putdown_market"
+        return Action(action_type, target_company)
     #time.sleep(1)
 
 def count_card(player, company):
@@ -623,6 +624,8 @@ def execute_putdown(player, action, player_list, market, company_list):
         putting_down_card(player, "to shares", player_list, market, company_list, action.target)
     elif action.type == "putdown_market":
         putting_down_card(player, "to market", player_list, market, company_list, action.target)
+    print("DEBUG market contents:", [(type(c._company), c._company) for c in market])
+    print("DEBUG shares contents:", [(type(c._company), c._company) for c in p._shares])
     ai_end_turn_messages(player, market)
     time.sleep(1)
 
