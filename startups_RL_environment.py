@@ -38,3 +38,21 @@ class StartupsEnv():
 
     def render(self):
             pass
+    
+    def _setup_action_space(self):
+        # 19 discrete actions (0 through 18)
+        self.player_actions_pick_up = ["from deck", "from market"]
+        self.player_actions_put_down = ["to shares", "to market"]
+        self.action_space = spaces.Discrete(19)
+        self.action_mapping = {}
+        action_id = 0
+
+        action_list = sg.get_all_game_actions(self.player_actions_pick_up, self.player_actions_put_down, self.company_list)
+        for action in action_list:
+            self.action_mapping[action_id] = action
+            action_id += 1
+        
+    def print_action_mapping(self):
+        print("Action Space Mapping:")
+        for idx, (action_type, target) in self.action_mapping.items():
+            print(f"  Action {idx}: {action_type} {target if target else ''}")

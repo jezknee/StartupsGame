@@ -259,6 +259,7 @@ def get_all_game_actions(player_actions_pick_up, player_actions_put_down, compan
     # gets whole list of actions, whether possible or not
     # returns tuples of (action_type, target_company)
     actions = []
+    actions.append(("from deck", None))  # "from deck" has no target
     for i in player_actions_pick_up:
         for c in company_list:
             actions.append((i, c))
