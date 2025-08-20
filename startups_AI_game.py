@@ -255,6 +255,20 @@ def check_pick_up_card(player, card):
         check = False
     return check
 
+def get_all_game_actions(player_actions_pick_up, player_actions_put_down, company_list):
+    # gets whole list of actions, whether possible or not
+    # returns tuples of (action_type, target_company)
+    actions = []
+    for i in player_actions_pick_up:
+        for c in company_list:
+            actions.append((i, c))
+
+    for i in player_actions_put_down:
+        for c in company_list:
+            actions.append((i, c))
+            
+    return actions
+
 def pick_up_action_choice(player, market, deck):
     """Return list of valid pickup actions for the player"""
     choices = []
