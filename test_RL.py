@@ -9,7 +9,7 @@ game_stages = ["pick_up", "put_down", "scoring"]
 
 company_list = sg.create_companies(default_companies)
 
-#env = sr.StartupsEnv()
+env = sr.StartupsEnv(4,0, default_companies)
 """
 company_list, player_list, deck, market = env.reset(company_list) 
 print(company_list)
@@ -17,5 +17,7 @@ print(player_list)
 print(deck)
 print(market)
 """
-all_actions = sg.get_all_game_actions(player_actions_pick_up, player_actions_put_down, company_list)
-print(all_actions)
+#all_actions = sg.get_all_game_actions(player_actions_pick_up, player_actions_put_down, company_list)
+#print(all_actions)
+print(env.print_action_mapping())
+print(env.state)
