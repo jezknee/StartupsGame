@@ -27,12 +27,55 @@ class StartupsEnv(Env):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         self.agent_player = self.random_RL_player_selection()
 
-    def step(self, action):
-            pass
-            #return reward, done, info
+    def step(self, action_id):
+        if action_id not in self.action_mapping:
+            return self.state, -10, False, False, {"invalid_action": True}
+        done = False
+        info = {}
+        #reward = -0.01
+        RL_player = self.agent_player
 
+                game_round += 1
+                print(f"Game Round: {game_round}")
+                if len(deck) == 0:
+                    Finished = True
+                else:
+                    if self.current_phase == "pickup":
+                        action = self.action_mapping[action_id]  # Predetermined by RL agent
+                        sg.execute_pickup(RL_player, action, self.market, self.deck)
+
+                    elif self.current_phase == "putdown": 
+                        action = self.action_mapping[action_id]  # Predetermined by RL agent
+                        sg.execute_putdown(RL_player, action, self.player_list, self.market, self.company_list)
+                    
+                    for p in self.player_list[1:]:
+                        pickup_action = p.pickup_strategy(p, self.market, self.deck, self.player_list)
+                        if pickup_action:
+                            execute_pickup(p, pickup_action, self.market, self.deck)
+
+                        putdown_action = p.putdown_strategy(p, self.market, self.deck, self.player_list)
+                        if putdown_action:
+                            execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+
+                    self.current_phase = "pickup"
+                    self.game_round += 1
+                    #self.state
+                    #return reward, done, info
+
+                    reward = self._calculate_reward(prev_coins, prev_shares, rl_player)
+
+                    terminated = len(self.deck) == 0        
+
+                    if terminated:
+                        sg.end_game_and_score(self.player_list, self.company_list)
+                        reward += self._calculate_final_reward()
+                    
+                    self._setup_action_space()
+                    
+                    return self._get_observation(), reward, terminated, False, {}                
+                                    
     def reset(self):
-        self.company_list, self.player_list, self.deck = sg.create_game(company_list, self.total_players, self.num_humans)
+        self.company_list, self.player_list, self.deck = sg.create_game(default_company_list, self.total_players, self.num_humans)
         self.market = []
         self.current_phase ="pickup"
         self._setup_action_space() 
@@ -42,7 +85,7 @@ class StartupsEnv(Env):
         return self._get_observation()
     
     def _get_observation(self):
-        player = self.player_list[0]
+        player = self.agent_player
         # player_coins
         player_coins = player._coins
         # player_hand
@@ -140,6 +183,35 @@ class StartupsEnv(Env):
             choices = sg.return_all_putdown_choices(player, self.company_list)
         return choices
     
+    def _calculate_reward(self, player):
+        # placeholder - just a sparse reward for now
+        # this will be slower, but I don't want to impose strategies
+        reward = -0.01
+        """
+        # Only reward getting coins
+        coin_change = player._coins - prev_coins
+        if coin_change > 0:
+            reward += coin_change * 0.1  # Gaining coins is always good
+            return -0.01
+
+        could add more rewards as training continues, e.g. add coin rewards later
+        could compare with the avoid_loss_ai or random_ai
+        """
+
+    def _calculate_player_rank(self):
+        rl_player = self.agent_player
+        sorted_players = sorted(self.player_list, key=lambda p: p._coins, reverse=True)
+        rl_player_rank = sorted_players.index(rl_player) if rl_player in sorted_players else -1
+        return rl_player_rank
+
+    def _calculate_final_reward(self):
+        rl_rank = self._calculate_player_rank()
+        reward_for_winning = 10
+        total_players = len(self.player_list)
+        reward_given_rank = reward_for_winning - (rl_rank / total_players) + self.agent_player._coins * 0.1
+        # again, might want to come up with a different function here
+        return reward_given_rank
+
     def random_RL_player_selection(self):
         random_choice = random.choice(range(len(self.player_list)))
         agent_player = None

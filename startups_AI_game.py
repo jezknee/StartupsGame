@@ -1,6 +1,6 @@
 import random
 import time
-import startups_RL_environment
+#import startups_RL_environment
 
 class Company:
     def __init__(self, name, total_shares, current_shares):
@@ -592,13 +592,7 @@ def avoid_loss_ai_pickup_strategy(player, market, deck, player_list):
 
 def avoid_loss_ai_putdown_strategy(player, market, deck, player_list):
     choices = return_all_putdown_choices(player, market)
-    #for c in choices:
-    #    try:
-    #        print(c)
-    #    except:
-    #        print("from deck")
-    #good_choices.append(c)
-    #if c.target is not None:
+
     good_choices = []
     bad_choices = []
     for c in choices:
@@ -704,11 +698,13 @@ if __name__ == "__main__":
         
                 pickup_action = p.pickup_strategy(p, market, deck, player_list)
                 if pickup_action:
-                    execute_pickup(p, pickup_action, market, deck)
+                    execute_pickup_for_rl(p, pickup_action, market, deck)
 
                 putdown_action = p.putdown_strategy(p, market, deck, player_list)
                 if putdown_action:
                     execute_putdown(p, putdown_action, player_list, market, company_list)
+                    # might need to charge this for putting down to market - it's getting company from the function definition
+                    # but we've specified an action, which already includes the selected company
 
     end_game_and_score(player_list, company_list)
 

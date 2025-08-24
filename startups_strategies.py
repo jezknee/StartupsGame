@@ -619,16 +619,23 @@ def execute_pickup(player, action, market, deck):
         picking_up_card(player, "from deck", market, deck)
     elif action.type == "pickup_market":
         picking_up_card(player, "from market", market, deck)
+
+def execute_pickup_for_rl(player, action, market, deck):
+    if action.type == "pickup_deck":
+        sg.picking_up_card(player, "from deck", market, deck)
+    elif action.type == "pickup_market":
+        # Direct execution without asking for input
+        player.take_card_from_market(market, action.target)
     
 def execute_putdown(player, action, player_list, market, company_list):
     if action.type == "putdown_shares":
         putting_down_card(player, "to shares", player_list, market, company_list, action.target)
     elif action.type == "putdown_market":
         putting_down_card(player, "to market", player_list, market, company_list, action.target)
-    print("DEBUG market contents:", [(type(c._company), c._company) for c in market])
-    print("DEBUG shares contents:", [(type(c._company), c._company) for c in p._shares])
-    ai_end_turn_messages(player, market)
-    time.sleep(1)
+    #print("DEBUG market contents:", [(type(c._company), c._company) for c in market])
+    #print("DEBUG shares contents:", [(type(c._company), c._company) for c in p._shares])
+    #ai_end_turn_messages(player, market)
+    #time.sleep(1)
 
 def end_game_and_score(player_list, company_list):
     print("The game has finished. Each player's cards are added to their shares.")
