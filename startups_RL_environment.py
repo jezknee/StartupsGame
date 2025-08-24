@@ -19,7 +19,8 @@ class StartupsEnv(Env):
         self.total_players = total_players
         self.num_humans = num_humans
         self.game_round = 0
-        self.company_list, self.player_list, self.deck = sg.create_game(default_company_list, self.total_players, self.num_humans)
+        self.default_company_list = default_company_list
+        self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
         self.current_phase ="pickup"
         self._setup_action_space() 
@@ -32,50 +33,46 @@ class StartupsEnv(Env):
             return self.state, -10, False, False, {"invalid_action": True}
         done = False
         info = {}
+        #game_round = 0
         #reward = -0.01
-        RL_player = self.agent_player
+        #rl_player = self.agent_player
 
-                game_round += 1
-                print(f"Game Round: {game_round}")
-                if len(deck) == 0:
-                    Finished = True
-                else:
-                    if self.current_phase == "pickup":
-                        action = self.action_mapping[action_id]  # Predetermined by RL agent
-                        sg.execute_pickup(RL_player, action, self.market, self.deck)
+        # need to decide what to do about one action in a turn or two actions
+        # the issue here is that your function takes one action_id, but you're playing two actions
+        # you could pass in 2 action_ids, one from each type
+        # but the gym environment won't allow that - either has to be a compound action, or 2 step calls per turn, or a tuple with 2 actions
+        self.game_round += 1
+        self.current_phase = "pickup"
+        action = self.action_mapping[action_id]  # Predetermined by RL agent
+        sg.execute_pickup(self.agent_player, action, self.market, self.deck)
+        self.current_phase = "putdown"
+        action = self.action_mapping[action_id]  # Predetermined by RL agent
+        sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
+        
+        for p in self.player_list:
+            if p == self.agent_player:
+                continue
+            pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
+            if pickup_action:
+                sg.execute_pickup(p, pickup_action, self.market, self.deck)
+            putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
+            if putdown_action:
+                sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
 
-                    elif self.current_phase == "putdown": 
-                        action = self.action_mapping[action_id]  # Predetermined by RL agent
-                        sg.execute_putdown(RL_player, action, self.player_list, self.market, self.company_list)
-                    
-                    for p in self.player_list[1:]:
-                        pickup_action = p.pickup_strategy(p, self.market, self.deck, self.player_list)
-                        if pickup_action:
-                            execute_pickup(p, pickup_action, self.market, self.deck)
+        reward = self._calculate_reward(self.agent_player)
 
-                        putdown_action = p.putdown_strategy(p, self.market, self.deck, self.player_list)
-                        if putdown_action:
-                            execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+        terminated = len(self.deck) == 0        
 
-                    self.current_phase = "pickup"
-                    self.game_round += 1
-                    #self.state
-                    #return reward, done, info
-
-                    reward = self._calculate_reward(prev_coins, prev_shares, rl_player)
-
-                    terminated = len(self.deck) == 0        
-
-                    if terminated:
-                        sg.end_game_and_score(self.player_list, self.company_list)
-                        reward += self._calculate_final_reward()
-                    
-                    self._setup_action_space()
-                    
-                    return self._get_observation(), reward, terminated, False, {}                
-                                    
+        if terminated:
+            sg.end_game_and_score(self.player_list, self.company_list)
+            reward += self._calculate_final_reward()
+        
+        self._setup_action_space()
+        
+        return self._get_observation(), reward, terminated, False, {}                
+                            
     def reset(self):
-        self.company_list, self.player_list, self.deck = sg.create_game(default_company_list, self.total_players, self.num_humans)
+        self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
         self.current_phase ="pickup"
         self._setup_action_space() 
@@ -176,17 +173,16 @@ class StartupsEnv(Env):
             print(f"  Action {action_id}: {action.type} {action.target if hasattr(action, 'target') and action.target else ''}")
 
     def _return_valid_actions(self):
-        player = self.player_list[0]
         if self.current_phase == "pickup":
-            choices = sg.return_all_pickup_choices(player, self.market)
+            choices = sg.return_all_pickup_choices(self.agent_player, self.market)
         elif self.current_phase == "putdown":
-            choices = sg.return_all_putdown_choices(player, self.company_list)
+            choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
         return choices
     
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
-        reward = -0.01
+        return -0.01
         """
         # Only reward getting coins
         coin_change = player._coins - prev_coins
