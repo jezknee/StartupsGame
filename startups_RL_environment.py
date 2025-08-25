@@ -18,11 +18,12 @@ class StartupsEnv(Env):
         super().__init__()
         self.total_players = total_players
         self.num_humans = num_humans
+        self.state_controller = GameStateController(self.player_list, self.agent_player)
         self.game_round = 0
         self.default_company_list = default_company_list
         self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
-        self.current_phase ="pickup"
+        self.current_phase = TurnPhase.RL_PICKUP
         self._setup_action_space() 
         self.state = self._get_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
@@ -42,10 +43,10 @@ class StartupsEnv(Env):
         # you could pass in 2 action_ids, one from each type
         # but the gym environment won't allow that - either has to be a compound action, or 2 step calls per turn, or a tuple with 2 actions
         self.game_round += 1
-        self.current_phase = "pickup"
+        self.current_phase = TurnPhase.RL_PICKUP
         action = self.action_mapping[action_id]  # Predetermined by RL agent
         sg.execute_pickup(self.agent_player, action, self.market, self.deck)
-        self.current_phase = "putdown"
+        self.current_phase = TurnPhase.RL_PUTDOWN
         action = self.action_mapping[action_id]  # Predetermined by RL agent
         sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
         
@@ -74,7 +75,7 @@ class StartupsEnv(Env):
     def reset(self):
         self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
-        self.current_phase ="pickup"
+        self.current_phase = TurnPhase.RL_PICKUP
         self._setup_action_space() 
         self.state = self._get_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
@@ -159,8 +160,8 @@ class StartupsEnv(Env):
         self.player_actions_put_down = ["to shares", "to market"]
         self.action_mapping = {}
         action_id = 0
-        #action_list = sg.get_all_game_actions(self.player_actions_pick_up, self.player_actions_put_down, self.company_list)
-        action_list = self._return_valid_actions()
+        action_list = sg.get_all_game_actions(self.player_actions_pick_up, self.player_actions_put_down, self.company_list)
+        #action_list = self._return_valid_actions()
         self.action_space = spaces.Discrete(len(action_list))
         for action in action_list:
             self.action_mapping[action_id] = action
@@ -220,4 +221,104 @@ class StartupsEnv(Env):
         agent_player.pickup_strategy = None 
         agent_player.putdown_strategy = None
         return agent_player
+
+        
+"""
+    def _handle_other_players(self, env):
+        Finished = False
+        while not Finished:
+            for p in self.player_list:
+                if p == self.agent_player:
+                    continue
+                pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
+                if pickup_action:
+                    sg.execute_pickup(p, pickup_action, self.market, self.deck)
+                putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
+                if putdown_action:
+                    sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+            Finished = True
+        self.current_phase = TurnPhase.ROUND_COMPLETE
+
+    def _run_step(self):
+        if self.current_phase == TurnPhase.RL_PICKUP:
+            action = self.action_mapping[action_id]  # Predetermined by RL agent
+            #self.agent_player._take_action(self.market, self.deck, self.player_list)
+            self._change_phase()
+        elif self.current_phase == TurnPhase.RL_PUTDOWN:
+            action = self.action_mapping[action_id]  # Predetermined by RL agent
+            #self.agent_player._take_action(self.market, self.deck, self.player_list)
+            self._change_phase()
+        elif self.current_phase == TurnPhase.OTHER_PLAYERS:
+            self._handle_other_players()
+            #self._handle_other_players()
+        elif self.current_phase == TurnPhase.ROUND_COMPLETE:
+            self.game_round += 1
+            self.current_phase = TurnPhase.RL_PICKUP
+"""
     
+class TurnPhase(Enum):
+    RL_PICKUP = "rl_pickup"
+    RL_PUTDOWN = "rl_putdown" 
+    OTHER_PLAYERS = "other_players"
+    ROUND_COMPLETE = "round_complete"
+
+class GameStateController:
+    def __init__(self, player_list, agent_player):
+        self.player_list = player_list
+        self.agent_player = env.agent_player
+        self.current_phase = TurnPhase.RL_PICKUP
+        #self.env = env
+        self.game_round = 0
+
+    def get_current_phase(self):
+        return self.current_phase
+
+    def _change_phase(self):
+        hand_size = len(self.rl_agent_player._hand)
+        if self.current_phase == TurnPhase.RL_PICKUP and hand_size == 4:
+            self.current_phase = TurnPhase.RL_PUTDOWN
+        elif self.current_phase == TurnPhase.RL_PUTDOWN and hand_size == 3:
+            self.current_phase = TurnPhase.OTHER_PLAYERS
+            self.other_players_completed = 0
+
+    def is_rl_agent_turn(self):
+        return self.current_phase in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]
+            
+    def get_next_other_player(self):
+        """Get the next non-RL player who needs to take their turn"""
+        if self.current_phase != TurnPhase.OTHER_PLAYERS:
+            return None
+            
+        other_players = [p for p in self.player_list if p != self.agent_player]
+        
+        if self.other_players_completed < len(other_players):
+            return other_players[self.other_players_completed]
+        else:
+            return None
+    
+    def advance_after_other_player_turn(self):
+        """Call this after a non-RL player completes their turn"""
+        if self.current_phase == TurnPhase.OTHER_PLAYERS:
+            self.other_players_completed += 1
+            other_players = [p for p in self.player_list if p != self.rl_agent]
+            
+            if self.other_players_completed >= len(other_players):
+                # All other players finished
+                self.current_phase = TurnPhase.ROUND_COMPLETE
+    
+    def advance_to_next_round(self):
+        # error here - still assumes RL player goes first
+        # need len(player_list) to be done
+        """Start a new round"""
+        if self.current_phase == TurnPhase.ROUND_COMPLETE:
+            self.round_number += 1
+            self.current_phase = TurnPhase.RL_PICKUP
+            self.other_players_completed = 0
+    
+    def should_execute_other_players(self):
+        """Check if we need to run other players' turns"""
+        return self.current_phase == TurnPhase.OTHER_PLAYERS
+    
+    def is_round_complete(self):
+        return self.current_phase == TurnPhase.ROUND_COMPLETE
+    def _terminate_game(self):
