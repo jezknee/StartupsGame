@@ -61,14 +61,15 @@ class StartupsEnv(Env):
                 return self.state, -10, False, False, {"invalid_action": True}
         elif current_phase == TurnPhase.OTHER_PLAYERS:
             for p in self.player_list:
-                pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
-                if pickup_action:
-                    sg.execute_pickup(p, pickup_action, self.market, self.deck)
-                    #self.state_controller._change_phase()
-                putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
-                if putdown_action:
-                    sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
-                    self.state_controller._change_phase()
+                if p != self.agent_player:
+                    pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
+                    if pickup_action:
+                        sg.execute_pickup(p, pickup_action, self.market, self.deck)
+                        #self.state_controller._change_phase()
+                    putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
+                    if putdown_action:
+                        sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+                        self.state_controller._change_phase()
 
         reward = self._calculate_reward(self.agent_player)
 
