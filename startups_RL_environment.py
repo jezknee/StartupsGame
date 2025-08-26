@@ -23,7 +23,7 @@ class StartupsEnv(Env):
         self.default_company_list = default_company_list
         self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
-        self.current_phase = TurnPhase.RL_PICKUP
+        self.current_phase = None
         self._setup_action_space() 
         self.state = self._get_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
@@ -42,23 +42,24 @@ class StartupsEnv(Env):
         # the issue here is that your function takes one action_id, but you're playing two actions
         # you could pass in 2 action_ids, one from each type
         # but the gym environment won't allow that - either has to be a compound action, or 2 step calls per turn, or a tuple with 2 actions
-        self.game_round += 1
-        self.current_phase = TurnPhase.RL_PICKUP
+        #self.game_round += 1
+        #
         action = self.action_mapping[action_id]  # Predetermined by RL agent
-        sg.execute_pickup(self.agent_player, action, self.market, self.deck)
-        self.current_phase = TurnPhase.RL_PUTDOWN
-        action = self.action_mapping[action_id]  # Predetermined by RL agent
-        sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
-        
-        for p in self.player_list:
-            if p == self.agent_player:
-                continue
-            pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
-            if pickup_action:
-                sg.execute_pickup(p, pickup_action, self.market, self.deck)
-            putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
-            if putdown_action:
-                sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+        if self.current_phase == TurnPhase.RL_PICKUP:
+            sg.execute_pickup(self.agent_player, action, self.market, self.deck)
+        elif self.current_phase == TurnPhase.RL_PUTDOWN:
+            sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
+        self._change_phase()
+        elif self.current_phase == TurnPhase.OTHER_PLAYERS:
+            for p in self.player_list:
+                pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
+                if pickup_action:
+                    sg.execute_pickup(p, pickup_action, self.market, self.deck)
+                    self._change_phase()
+                putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
+                if putdown_action:
+                    sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+                    self._change_phase()
 
         reward = self._calculate_reward(self.agent_player)
 
@@ -80,7 +81,7 @@ class StartupsEnv(Env):
         self.state = self._get_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         self.game_round = 0
-        return self._get_observation()
+        return self.state
     
     def _get_observation(self):
         player = self.agent_player
@@ -102,6 +103,8 @@ class StartupsEnv(Env):
         other_player_coins = [player._coins for player in self.player_list[1:]]
         # other player chips
         other_player_chips = [player._chips for player in self.player_list[1:]]
+        # game phase
+        game_phase = self.current_phase
 
         # Convert to RL-friendly format
         return self._convert_to_numeric_observation(player_coins, player_hand, player_shares, player_chips, market_cards, market_card_coins, other_player_shares, other_player_coins, other_player_chips)
@@ -147,6 +150,8 @@ class StartupsEnv(Env):
             other_chips = sg.get_company_set(other_player)
             for company in self.company_list:
                 obs.append(1.0 if company._name in other_chips else 0.0)
+        
+        obs.append(float(game_phase._enumerate_phase()))
 
         return np.array(obs, dtype=np.float32)
 
@@ -174,9 +179,9 @@ class StartupsEnv(Env):
             print(f"  Action {action_id}: {action.type} {action.target if hasattr(action, 'target') and action.target else ''}")
 
     def _return_valid_actions(self):
-        if self.current_phase == "pickup":
+        if self.current_phase == TurnPhase.RL_PICKUP:
             choices = sg.return_all_pickup_choices(self.agent_player, self.market)
-        elif self.current_phase == "putdown":
+        elif self.current_phase == TurnPhase.RL_PUTDOWN:
             choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
         return choices
     
@@ -272,6 +277,16 @@ class GameStateController:
 
     def get_current_phase(self):
         return self.current_phase
+
+    def _enumerate_phase(self):
+        if self.current_phase == TurnPhase.RM_PICKUP:
+            return 1
+        elif self.current_phase == TurnPhase.RL_PUTDOWN:
+            return 2
+        elif self.current_phase == TurnPhase.OTHER_PLAYERS:
+            return 3
+        elif self.current_phase == TurnPhase.ROUND_COMPLETE:
+            return 4
 
     def _change_phase(self):
         hand_size = len(self.rl_agent_player._hand)
