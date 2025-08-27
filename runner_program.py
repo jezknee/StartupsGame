@@ -52,7 +52,7 @@ if __name__ == '__main__':
        
         print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=64, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model.keras')
+        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=100000, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model1000.keras')
         print("Agent created successfully")
 
         scores = []
@@ -106,7 +106,7 @@ if __name__ == '__main__':
                     print(f"Error saving model: {e}")
 
         print("Training completed, creating plot...")
-        filename = 'startups1.png'
+        filename = 'startups1000.png'
         x = [i+1 for i in range(len(scores))]
         plotLearning(x, scores, eps_history, filename)
         print("Script completed successfully")

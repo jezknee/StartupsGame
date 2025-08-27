@@ -75,17 +75,19 @@ class StartupsEnv(Env):
                         self.state_controller._change_phase()
 
         reward = self._calculate_reward(self.agent_player)
+        info = {"intermediate_reward": reward}
 
         terminated = len(self.deck) == 0        
 
         if terminated:
             sg.end_game_and_score(self.player_list, self.company_list)
             reward += self._calculate_final_reward()
-        
+            info = {"final_reward": reward}
+
         self._setup_action_space()
-        
-        return self._get_observation(), reward, terminated, False, {}                
-                            
+
+        return self._get_observation(), reward, terminated, False, info
+
     def reset(self):
         self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
         self.market = []

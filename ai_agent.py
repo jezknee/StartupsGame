@@ -103,7 +103,7 @@ class Agent(object):
         if rand < self.epsilon:
             action = np.random.choice(self.action_space)
         else:
-            actions = self.q_eval.predict(state, verbose=0)  # Added verbose=0 to reduce output
+            actions = self.q_eval.predict(state, verbose=1)  # Added verbose=1 to reduce output
             action = np.argmax(actions)
         
         return action
@@ -119,8 +119,8 @@ class Agent(object):
         action_values = np.array(self.action_space, dtype=np.int8)
         action_indices = np.dot(action, action_values)  # Fixed typo: was "avtion_indices"
 
-        q_eval = self.q_eval.predict(state, verbose=0)  # Added verbose=0
-        q_next = self.q_eval.predict(new_state, verbose=0)  # Added verbose=0
+        q_eval = self.q_eval.predict(state, verbose=1)  # Added verbose=1
+        q_next = self.q_eval.predict(new_state, verbose=1)  # Added verbose=1
 
         q_target = q_eval.copy()
         # address all states in your array, but can't just use array slicing, because the shape will be different for each batch size
@@ -128,7 +128,7 @@ class Agent(object):
         # these \ are line breaks, by the way, just continues on next line
         q_target[batch_index, action_indices] = reward + self.gamma*np.max(q_next, axis=1)*done # best possible reward you could have received in the next state * done
 
-        _ = self.q_eval.fit(state, q_target, verbose=0)
+        _ = self.q_eval.fit(state, q_target, verbose=1)
         # this passes batch of states through network, calculates, then compares to q_target (delta between where we are and where we want to be)
 
         self.epsilon = self.epsilon*self.epsilon_dec if self.epsilon > self.epsilon_min else self.epsilon_min 
