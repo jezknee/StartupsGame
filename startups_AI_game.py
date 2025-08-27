@@ -265,8 +265,6 @@ def get_all_game_actions(player_actions_pick_up, player_actions_put_down, compan
         if i == "pickup_market":
             for c in company_list:
                 actions.append(Action(i, c))
-        for c in company_list:
-            actions.append(Action(i, c))
 
     for i in player_actions_put_down:
         for c in company_list:

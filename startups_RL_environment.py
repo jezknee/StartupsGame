@@ -45,27 +45,25 @@ class StartupsEnv(Env):
         #self.game_round += 1
         
         action = self.action_mapping[action_id]  # Predetermined by RL agent
-        current_phase = self.state_controller.get_current_phase()
 
-        if current_phase == TurnPhase.RL_PICKUP:
+        if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP:
             try:
                 sg.execute_pickup(self.agent_player, action, self.market, self.deck)
                 self.state_controller._change_phase()
             except:
                 return self.state, -10, False, False, {"invalid_action": True}
-        elif current_phase == TurnPhase.RL_PUTDOWN:
+        elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN:
             try:
                 sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
                 self.state_controller._change_phase()
             except:
                 return self.state, -10, False, False, {"invalid_action": True}
-        elif current_phase == TurnPhase.OTHER_PLAYERS:
+        elif self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS:
             for p in self.player_list:
                 if p != self.agent_player:
                     pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
                     if pickup_action:
                         sg.execute_pickup(p, pickup_action, self.market, self.deck)
-                        #self.state_controller._change_phase()
                     putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
                     if putdown_action:
                         sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
@@ -92,8 +90,8 @@ class StartupsEnv(Env):
         self.state = self._get_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         self.game_round = 0
-        return self.state
-    
+        return self.state, {"info": "Game reset"}
+
     def _get_observation(self):
         player = self.agent_player
         # player_coins
@@ -191,11 +189,17 @@ class StartupsEnv(Env):
             print(f"  Action {action_id}: {action.type} {action.target if hasattr(action, 'target') and action.target else ''}")
 
     def _return_valid_actions(self):
+        choices = []
         if self.current_phase == TurnPhase.RL_PICKUP:
             choices = sg.return_all_pickup_choices(self.agent_player, self.market)
         elif self.current_phase == TurnPhase.RL_PUTDOWN:
             choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
-        return choices
+
+        mask = np.zeros(self.action_space.n, dtype=np.int8)
+        for action_id, action in self.action_mapping.items():
+            if action in valid_actions:   # relies on Action.__eq__ being defined (you already have it ✅)
+                mask[action_id] = 1
+        return mask
     
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now
@@ -283,7 +287,8 @@ class GameStateController:
     def __init__(self, player_list, agent_player):
         self.player_list = player_list
         self.agent_player = agent_player
-        self.current_phase = TurnPhase.RL_PICKUP
+        self.current_player_index = 0
+        self.current_phase = self.get_starting_phase()
         self.other_players_completed = 0
         #self.env = env
         self.game_round = 0
@@ -297,6 +302,17 @@ class GameStateController:
             return TurnPhase.RL_PICKUP
         else:
             return TurnPhase.OTHER_PLAYERS
+
+    def _advance_to_next_player(self):
+        if self.current_player_index == len(self.player_list) - 1:
+            self.current_player_index = 0
+        else:
+            self.current_player_index += 1
+
+        if self.player_list[self.current_player_index] == self.agent_player:
+            self.current_phase = TurnPhase.RL_PICKUP
+        else:
+            self.current_phase = TurnPhase.OTHER_PLAYERS
 
     def _enumerate_phase(self):
         phase_mapping = {
@@ -313,7 +329,8 @@ class GameStateController:
             self.current_phase = TurnPhase.RL_PUTDOWN
         elif self.current_phase == TurnPhase.RL_PUTDOWN and hand_size == 3:
             self.current_phase = TurnPhase.OTHER_PLAYERS
-            self.other_players_completed = 0
+        elif self.current_phase == TurnPhase.OTHER_PLAYERS:
+            self._advance_to_next_player()
 """
     def is_rl_agent_turn(self):
         return self.current_phase in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]
@@ -353,3 +370,19 @@ class GameStateController:
         return self.current_phase == TurnPhase.ROUND_COMPLETE
     def _terminate_game(self):
 """
+
+class ActionMaskWrapper(gym.Wrapper):
+    def step(self, action_id):
+        mask = self.env._return_valid_actions(return_mask=True)
+
+        if mask[action_id] == 0:
+            # Invalid → resample uniformly from valid actions
+            valid_ids = np.where(mask == 1)[0]
+            action_id = np.random.choice(valid_ids)
+            invalid_action = True
+        else:
+            invalid_action = False
+
+        obs, reward, terminated, truncated, info = self.env.step(action_id)
+        info["invalid_action"] = invalid_action
+        return obs, reward, terminated, truncated, info
