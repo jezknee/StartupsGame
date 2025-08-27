@@ -262,6 +262,9 @@ def get_all_game_actions(player_actions_pick_up, player_actions_put_down, compan
     actions = []
     actions.append(Action("pickup_deck", None))  # "from deck" has no target
     for i in player_actions_pick_up:
+        if i == "pickup_market":
+            for c in company_list:
+                actions.append(Action(i, c))
         for c in company_list:
             actions.append(Action(i, c))
 

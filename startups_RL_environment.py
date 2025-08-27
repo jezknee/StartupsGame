@@ -171,17 +171,18 @@ class StartupsEnv(Env):
             pass
     
     def _setup_action_space(self):
-        # 19 discrete actions (0 through 18)
-        self.player_actions_pick_up = ["from deck", "from market"]
-        self.player_actions_put_down = ["to shares", "to market"]
+        self.player_actions_pick_up = ["pickup_deck", "pickup_market"]
+        self.player_actions_put_down = ["putdown_shares", "putdown_market"]
         self.action_mapping = {}
         action_id = 0
         action_list = sg.get_all_game_actions(self.player_actions_pick_up, self.player_actions_put_down, self.company_list)
         #action_list = self._return_valid_actions()
-        self.action_space = spaces.Discrete(len(action_list))
+        
         for action in action_list:
             self.action_mapping[action_id] = action
             action_id += 1
+
+        self.action_space = spaces.Discrete(len(self.action_mapping))
         
     def print_action_mapping(self):
         print("Action Space Mapping:")
