@@ -40,10 +40,13 @@ print("Script starting...")
 
 if __name__ == '__main__':
     print("Main block entered")
+    default_companies = [["Giraffe Beer", 5],["Bowwow Games",6],["Flamingo Soft",7],["Octo Coffee", 8],["Hippo Powertech", 9],["Elephant Mars Travel", 10]]
+    player_actions_pick_up = ["pickup_deck", "pickup_market"]
+    player_actions_put_down = ["putdown_shares", "putdown_market"]
     
     try:
         print("Creating environment...")
-        env = gym.make(sr.StartupsEnv)
+        env = sr.StartupsEnv(total_players=4, num_humans=0, default_company_list=sg.get_default_company_list())
         print(f"Environment created successfully. Action space: {env.action_space}, Observation space: {env.observation_space}")
         
        
