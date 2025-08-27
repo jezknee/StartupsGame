@@ -46,12 +46,13 @@ if __name__ == '__main__':
     
     try:
         print("Creating environment...")
-        env = sr.StartupsEnv(total_players=4, num_humans=0, default_company_list=sg.get_default_company_list())
+        env = sr.StartupsEnv(total_players=4, num_humans=0, default_company_list=default_companies)
         print(f"Environment created successfully. Action space: {env.action_space}, Observation space: {env.observation_space}")
         
        
         print("Creating agent...")
-        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=4, epsilon=1.0, batch_size=64, input_dims=8, epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='dqn_model.keras')
+        # make input_dims match the observation space without hardcoding
+        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=64, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model.keras')
         print("Agent created successfully")
 
         scores = []
@@ -105,7 +106,7 @@ if __name__ == '__main__':
                     print(f"Error saving model: {e}")
 
         print("Training completed, creating plot...")
-        filename = 'lunarlander.png'
+        filename = 'startups1.png'
         x = [i+1 for i in range(len(scores))]
         plotLearning(x, scores, eps_history, filename)
         print("Script completed successfully")

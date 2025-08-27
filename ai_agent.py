@@ -17,7 +17,7 @@ class ReplayBuffer(object):
         self.discrete = discrete # whether to represent as a vector or as one-hot encoding
         self.state_memory = np.zeros((self.mem_size, input_shape))
         self.new_state_memory = np.zeros((self.mem_size, input_shape))
-        dtype = np.int8 if self.discrete else np.float32 # if one hot we don not want to save as integers
+        dtype = np.int64 if self.discrete else np.float32 # if one hot we don not want to save as integers
         self.action_memory = np.zeros((self.mem_size, n_actions), dtype=dtype)
         self.reward_memory = np.zeros((self.mem_size)) # keeping track of rewards agent receives
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.float32) # keeps track of terminal flags from the environment - once the episode is over, you don't want to take account of reward from next state

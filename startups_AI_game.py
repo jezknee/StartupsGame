@@ -27,7 +27,9 @@ class Company:
         return max(company_shares_dictionary, key=company_shares_dictionary.get) if max_count == 1 else None
 
     def __eq__(self, other):
-        return self._name == other._name
+        if isinstance(other, Company):
+            return self._name == other._name
+        return NotImplemented
     def __hash__(self):
         return hash(self._name)  # hash based only on name
     def __str__(self):
@@ -105,7 +107,9 @@ class Card:
         self._company = company
         self._coins_on = coins_on
     def __eq__(self, other):
-        return self._company == other._company
+        if isinstance(other, Card):
+            return self._company == other._company
+        return NotImplemented
     def __str__(self):
         return f"(Card Type: {self._company})"
     def in_market(self, market):
@@ -125,7 +129,9 @@ class Action:
     def __str__(self):
         return f"Action Type: {self.type}, Card: {self.target}"
     def __eq__(self, other):
-        return self.type == other.type and self.target == other.target
+        if isinstance(other, Action):
+            return self.type == other.type and self.target == other.target
+        return NotImplemented
 
 
 default_companies = [["Giraffe Beer", 5],["Bowwow Games",6],["Flamingo Soft",7],["Octo Coffee", 8],["Hippo Powertech", 9],["Elephant Mars Travel", 10]]
@@ -166,6 +172,34 @@ def create_players(no_players, no_humans):
         elif humans_created == no_humans:
             player = Player(n, 10, [], [], set(), False)
             if n == assign_avoid_loss_strategy_to:
+                player.pickup_strategy = avoid_loss_ai_pickup_strategy
+                player.putdown_strategy = avoid_loss_ai_putdown_strategy
+            else:
+                player.pickup_strategy = random_ai_pickup_strategy
+                player.putdown_strategy = random_ai_putdown_strategy
+        player_list.append(player)
+        n += 1
+    return player_list
+
+    
+def create_players_RL(no_players, no_humans):
+    player_list = []
+    n = 1
+    humans_created = 0
+    #assign_RL_strategy_to = random.choice([1,4])
+    assign_avoid_loss_strategy_to = random.choice([1,4])
+    assign_avoid_loss_strategy_to_2 = random.choice([1,4])
+    assign_avoid_loss_strategy_to_3 = random.choice([1,4])
+    assign_avoid_loss_strategy_to_4 = random.choice([1,4])
+    while n <= no_players:
+        if humans_created < no_humans:
+            player = Player(n, 10, [], [], set(), True)
+            player.pickup_strategy = human_pickup_strategy
+            player.putdown_strategy = human_putdown_strategy
+            humans_created += 1
+        elif humans_created == no_humans:
+            player = Player(n, 10, [], [], set(), False)
+            if n == assign_avoid_loss_strategy_to or n == assign_avoid_loss_strategy_to_2 or n == assign_avoid_loss_strategy_to_3 or n == assign_avoid_loss_strategy_to_4:
                 player.pickup_strategy = avoid_loss_ai_pickup_strategy
                 player.putdown_strategy = avoid_loss_ai_putdown_strategy
             else:
@@ -409,7 +443,7 @@ def return_all_pickup_choices(player, market):
         actions.append(Action("pickup_deck"))  # target stays None by design
     for card in market:
         if check_pick_up_card(player, card):
-            actions.append(Action("pickup_market", card._company))  # <-- string
+            actions.append(Action("pickup_market", card._company))
     return actions
 
 def return_all_putdown_choices(player, market):
@@ -637,10 +671,10 @@ def execute_putdown(player, action, player_list, market, company_list):
         putting_down_card(player, "putdown_shares", player_list, market, company_list, action.target)
     elif action.type == "putdown_market":
         putting_down_card(player, "putdown_market", player_list, market, company_list, action.target)
-    print("DEBUG market contents:", [(type(c._company), c._company) for c in market])
-    print("DEBUG shares contents:", [(type(c._company), c._company) for c in p._shares])
+    #print("DEBUG market contents:", [(type(c._company), c._company) for c in market])
+    #print("DEBUG shares contents:", [(type(c._company), c._company) for c in p._shares])
     ai_end_turn_messages(player, market)
-    time.sleep(1)
+    #time.sleep(1)
 
 def end_game_and_score(player_list, company_list):
     print("The game has finished. Each player's cards are added to their shares.")
@@ -652,7 +686,7 @@ def end_game_and_score(player_list, company_list):
         majority_shareholder = company.get_majority_holder(player_list)
         if majority_shareholder is not None:
             print(f"The majority shareholder in {company._name} is Player {majority_shareholder._number}")
-            time.sleep(1)
+            #time.sleep(1)
             total_coins = 0
             
             for p in player_list:
@@ -668,11 +702,11 @@ def end_game_and_score(player_list, company_list):
             majority_shareholder._coins += total_coins
         else:
             print(f"No majority shareholder for {company._name}.")
-            time.sleep(1)
+            #time.sleep(1)
 
     for p in player_list:
             print(f"Player {p._number}'s coins are now: {p._coins}")
-            time.sleep(1)
+            #time.sleep(1)
     
     winner = find_winner_simple(player_list)
     print(f"The winner is: {winner._number}")
@@ -700,7 +734,7 @@ if __name__ == "__main__":
         
                 pickup_action = p.pickup_strategy(p, market, deck, player_list)
                 if pickup_action:
-                    execute_pickup_for_rl(p, pickup_action, market, deck)
+                    execute_pickup(p, pickup_action, market, deck)
 
                 putdown_action = p.putdown_strategy(p, market, deck, player_list)
                 if putdown_action:

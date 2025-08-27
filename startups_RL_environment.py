@@ -33,6 +33,7 @@ class StartupsEnv(Env):
     def step(self, action_id):
         if action_id not in self.action_mapping:
             return self.state, -10, False, False, {"invalid_action": True}
+
         done = False
         info = {}
         #game_round = 0
@@ -46,6 +47,8 @@ class StartupsEnv(Env):
         #self.game_round += 1
         
         action = self.action_mapping[action_id]  # Predetermined by RL agent
+        if not self._return_valid_action_check(action):
+            return self.state, -10, True, False, {"invalid_action": True}
 
         if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP:
             try:
@@ -62,10 +65,11 @@ class StartupsEnv(Env):
         elif self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS:
             for p in self.player_list:
                 if p != self.agent_player:
-                    pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
+                    # need to decide whether random or avoid_loss
+                    pickup_action = p.pickup_strategy(p, self.market, self.deck, self.player_list)
                     if pickup_action:
                         sg.execute_pickup(p, pickup_action, self.market, self.deck)
-                    putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
+                    putdown_action = p.putdown_strategy(p, self.market, self.deck, self.player_list)
                     if putdown_action:
                         sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
                         self.state_controller._change_phase()
@@ -191,17 +195,30 @@ class StartupsEnv(Env):
 
     def _return_valid_actions(self):
         choices = []
-        if self.current_phase == TurnPhase.RL_PICKUP:
+        if self.state_controller.current_phase == TurnPhase.RL_PICKUP:
             choices = sg.return_all_pickup_choices(self.agent_player, self.market)
-        elif self.current_phase == TurnPhase.RL_PUTDOWN:
+        elif self.state_controller.current_phase == TurnPhase.RL_PUTDOWN:
             choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
 
         mask = np.zeros(self.action_space.n, dtype=np.int8)
         for action_id, action in self.action_mapping.items():
-            if action in valid_actions:   # relies on Action.__eq__ being defined (you already have it ✅)
+            if action in choices:
                 mask[action_id] = 1
         return mask
-    
+
+    def _return_valid_action_check(self, action):
+        choices = []
+        if self.state_controller.current_phase == TurnPhase.RL_PICKUP:
+            choices = sg.return_all_pickup_choices(self.agent_player, self.market)
+        elif self.state_controller.current_phase == TurnPhase.RL_PUTDOWN:
+            choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
+
+        check = False
+        for c in choices:
+            if action == c:
+                check = True    
+        return check
+
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
