@@ -6,6 +6,7 @@ import keras
 from keras.models import Sequential, load_model  # Added load_model import
 from keras.layers import Dense, Activation
 from keras.optimizers import Adam
+import gymnasium as gym
 import os
 
 
@@ -94,20 +95,26 @@ class Agent(object):
     def remember(self, state, action, reward, new_state, done):
         self.memory.store_transition(state, action, reward, new_state, done)
 
-    def choose_action(self, state):
+    def choose_action(self, state, env):
+        valid_actions = env.get_valid_actions(state)
         state = state[np.newaxis,:]
         rand = np.random.random()
         # pass the state through the network
         # get all the value of all the actions for that particular state
         # select the action that has the maximum value
+
         if rand < self.epsilon:
-            action = np.random.choice(self.action_space)
+            action_id = np.random.choice(valid_actions)
+
         else:
-            actions = self.q_eval.predict(state, verbose=1)  # Added verbose=1 to reduce output
-            action = np.argmax(actions)
-        
-        return action
-    
+            q_values = self.q_eval.predict(state, verbose=0)[0]
+
+            masked_q = np.full_like(q_values, -np.inf)
+            masked_q[valid_actions] = q_values[valid_actions]
+            action_id = np.argmax(masked_q)
+
+        return action_id
+
     def learn(self):
         # learns on every step - temporal difference
         # we have created our memory with zeroes - do we pick random numbers, or just start learning? Latter here, but we have to wait until we've filled up a batch before we start learning
@@ -117,10 +124,10 @@ class Agent(object):
         state, action, reward, new_state, done = \
                                 self.memory.sample_buffer(self.batch_size)
         action_values = np.array(self.action_space, dtype=np.int8)
-        action_indices = np.dot(action, action_values)  # Fixed typo: was "avtion_indices"
+        action_indices = np.dot(action, action_values)
 
-        q_eval = self.q_eval.predict(state, verbose=1)  # Added verbose=1
-        q_next = self.q_eval.predict(new_state, verbose=1)  # Added verbose=1
+        q_eval = self.q_eval.predict(state, verbose=0)
+        q_next = self.q_eval.predict(new_state, verbose=0)
 
         q_target = q_eval.copy()
         # address all states in your array, but can't just use array slicing, because the shape will be different for each batch size

@@ -31,6 +31,11 @@ class StartupsEnv(Env):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         
     def step(self, action_id):
+        # I think the problem is when the agent isn't the first player to go
+        # in that case there won't be any valid actions returned by the action check
+        # I want this function to use GameStateController and run the other players' turn for as long as it's not the agent's turn
+        # then when the agent goes we check whether the action_id fed into step produces a valid action
+
         reward = 0
         if action_id not in self.action_mapping:
             return self.state, reward-10, False, False, {"invalid_action": True}
@@ -222,6 +227,21 @@ class StartupsEnv(Env):
             if action == c:
                 check = True    
         return check
+
+    def get_valid_actions(self, state):
+        choices = self.action_mapping.items()
+        valid_actions = [action_id for action_id, action in self.action_mapping.items() if self._return_valid_action_check(action)]
+
+        for c in choices:
+                print("Choice:", c.type, c.target if hasattr(c, 'target') else 'None', "in action_mapping?", c in self.action_mapping.values())
+
+        if len(valid_actions) == 0:
+            print("BUG: No valid actions found!")
+            print("Phase:", self.state_controller.get_current_phase())
+            print("Choices returned:", choices)
+            print("Action mapping values:", list(self.action_mapping.values())[:10])
+            
+        return valid_actions
 
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now

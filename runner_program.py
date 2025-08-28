@@ -73,7 +73,7 @@ if __name__ == '__main__':
             step_count = 0
             while not done:
                 try:
-                    action = agent.choose_action(observation)
+                    action = agent.choose_action(observation, env)
                     observation_, reward, terminated, truncated, info = env.step(action)
                     done = terminated or truncated
                     
