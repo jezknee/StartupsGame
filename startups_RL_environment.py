@@ -35,51 +35,54 @@ class StartupsEnv(Env):
         # in that case there won't be any valid actions returned by the action check
         # I want this function to use GameStateController and run the other players' turn for as long as it's not the agent's turn
         # then when the agent goes we check whether the action_id fed into step produces a valid action
-
+        players_to_check = len(self.player_list)
+        players_gone = 0
+        p_gone_list = []
         reward = 0
         if action_id not in self.action_mapping:
             return self.state, reward-10, False, False, {"invalid_action": True}
 
         done = False
         info = {}
-        #game_round = 0
-        #reward = -0.01
-        #rl_player = self.agent_player
-
-        # need to decide what to do about one action in a turn or two actions
-        # the issue here is that your function takes one action_id, but you're playing two actions
-        # you could pass in 2 action_ids, one from each type
-        # but the gym environment won't allow that - either has to be a compound action, or 2 step calls per turn, or a tuple with 2 actions
-        #self.game_round += 1
         
         action = self.action_mapping[action_id]  # Predetermined by RL agent
-        if not self._return_valid_action_check(action):
-            return self.state, reward-10, True, False, {"invalid_action": True}
-        reward = 1
-        if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP:
-            try:
-                sg.execute_pickup(self.agent_player, action, self.market, self.deck)
-                self.state_controller._change_phase()
-            except:
-                return self.state, -10, False, False, {"invalid_action": True}
-        elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN:
-            try:
-                sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
-                self.state_controller._change_phase()
-            except:
-                return self.state, -10, False, False, {"invalid_action": True}
-        elif self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS:
-            reward += 1
-            for p in self.player_list:
-                if p != self.agent_player:
-                    # need to decide whether random or avoid_loss
-                    pickup_action = p.pickup_strategy(p, self.market, self.deck, self.player_list)
-                    if pickup_action:
-                        sg.execute_pickup(p, pickup_action, self.market, self.deck)
-                    putdown_action = p.putdown_strategy(p, self.market, self.deck, self.player_list)
-                    if putdown_action:
-                        sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
-                        self.state_controller._change_phase()
+        
+        while players_gone < players_to_check:
+            if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP:
+                if not self._return_valid_action_check(action):
+                    return self.state, reward-10, True, False, {"invalid_action": True}
+
+                try:
+                    sg.execute_pickup(self.agent_player, action, self.market, self.deck)
+                    reward += 1
+                    self.state_controller._change_phase()
+                except:
+                    return self.state, -10, False, False, {"invalid_action": True}
+            elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN:
+                if not self._return_valid_action_check(action):
+                    return self.state, reward-10, True, False, {"invalid_action": True}
+                try:
+                    sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
+                    reward += 1
+                    self.state_controller._change_phase()
+                    players_gone += 1
+                    p_gone_list.append(self.agent_player)
+                except:
+                    return self.state, -10, False, False, {"invalid_action": True}
+            elif self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS:
+                for p in self.player_list:
+                    if p != self.agent_player and p not in p_gone_list:
+                        # need to decide whether random or avoid_loss
+                        pickup_action = p.pickup_strategy(p, self.market, self.deck, self.player_list)
+                        if pickup_action:
+                            sg.execute_pickup(p, pickup_action, self.market, self.deck)
+
+                        putdown_action = p.putdown_strategy(p, self.market, self.deck, self.player_list)
+                        if putdown_action:
+                            sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
+                            self.state_controller._change_phase()
+                            players_gone += 1
+                            p_gone_list.append(p)
 
         reward += self._calculate_reward(self.agent_player)
         info = {"intermediate_reward": reward}
@@ -233,13 +236,12 @@ class StartupsEnv(Env):
         valid_actions = [action_id for action_id, action in self.action_mapping.items() if self._return_valid_action_check(action)]
 
         for c in choices:
-                print("Choice:", c.type, c.target if hasattr(c, 'target') else 'None', "in action_mapping?", c in self.action_mapping.values())
-
+                print("Choice:", c[0], c[1], "in action_mapping?", c in self.action_mapping.values())
+        print("Phase:", self.state_controller.get_current_phase())
         if len(valid_actions) == 0:
             print("BUG: No valid actions found!")
-            print("Phase:", self.state_controller.get_current_phase())
-            print("Choices returned:", choices)
-            print("Action mapping values:", list(self.action_mapping.values())[:10])
+            #print("Choices returned:", choices)
+            #print("Action mapping values:", list(self.action_mapping.values())[:10])
             
         return valid_actions
 

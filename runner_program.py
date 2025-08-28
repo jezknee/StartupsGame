@@ -52,7 +52,7 @@ if __name__ == '__main__':
        
         print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=10000, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model3.keras')
+        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=10, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model4.keras')
         print("Agent created successfully")
 
         scores = []
@@ -73,14 +73,15 @@ if __name__ == '__main__':
             step_count = 0
             while not done:
                 try:
-                    action = agent.choose_action(observation, env)
-                    observation_, reward, terminated, truncated, info = env.step(action)
-                    done = terminated or truncated
-                    
-                    agent.remember(observation, action, reward, observation_, done)
-                    observation = observation_
-                    score += reward
-                    agent.learn()
+                    if env.state_controller.get_current_phase() in (sr.TurnPhase.RL_PUTDOWN, sr.TurnPhase.RL_PICKUP):
+                        action = agent.choose_action(observation, env)
+                        observation_, reward, terminated, truncated, info = env.step(action)
+                        done = terminated or truncated
+                        
+                        agent.remember(observation, action, reward, observation_, done)
+                        observation = observation_
+                        score += reward
+                        agent.learn()
                     
                     step_count += 1
                     if step_count > 1000:
