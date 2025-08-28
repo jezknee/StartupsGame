@@ -52,7 +52,7 @@ if __name__ == '__main__':
        
         print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=100000, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model1000.keras')
+        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=10000, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model3.keras')
         print("Agent created successfully")
 
         scores = []
@@ -98,7 +98,7 @@ if __name__ == '__main__':
             avg_score = np.mean(scores[max(0, i-100):i+1])
             print(f'episode {i}, score {score:.2f}, average score {avg_score:.2f}, epsilon {agent.epsilon:.3f}')
             
-            if i % 10 == 0 and i > 0:
+            if i % 100 == 0 and i > 0:
                 try:
                     agent.save_model()
                     print(f"Model saved at episode {i}")

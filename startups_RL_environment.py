@@ -31,8 +31,9 @@ class StartupsEnv(Env):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         
     def step(self, action_id):
+        reward = 0
         if action_id not in self.action_mapping:
-            return self.state, -10, False, False, {"invalid_action": True}
+            return self.state, reward-10, False, False, {"invalid_action": True}
 
         done = False
         info = {}
@@ -48,8 +49,8 @@ class StartupsEnv(Env):
         
         action = self.action_mapping[action_id]  # Predetermined by RL agent
         if not self._return_valid_action_check(action):
-            return self.state, -10, True, False, {"invalid_action": True}
-
+            return self.state, reward-10, True, False, {"invalid_action": True}
+        reward = 1
         if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP:
             try:
                 sg.execute_pickup(self.agent_player, action, self.market, self.deck)
@@ -63,6 +64,7 @@ class StartupsEnv(Env):
             except:
                 return self.state, -10, False, False, {"invalid_action": True}
         elif self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS:
+            reward += 1
             for p in self.player_list:
                 if p != self.agent_player:
                     # need to decide whether random or avoid_loss
@@ -74,7 +76,7 @@ class StartupsEnv(Env):
                         sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
                         self.state_controller._change_phase()
 
-        reward = self._calculate_reward(self.agent_player)
+        reward += self._calculate_reward(self.agent_player)
         info = {"intermediate_reward": reward}
 
         terminated = len(self.deck) == 0        
@@ -244,9 +246,9 @@ class StartupsEnv(Env):
 
     def _calculate_final_reward(self):
         rl_rank = self._calculate_player_rank()
-        reward_for_winning = 10
+        reward_for_winning = 100
         total_players = len(self.player_list)
-        reward_given_rank = reward_for_winning - (rl_rank / total_players) + self.agent_player._coins * 0.1
+        reward_given_rank = reward_for_winning - (rl_rank / total_players) + self.agent_player._coins
         # again, might want to come up with a different function here
         return reward_given_rank
 
