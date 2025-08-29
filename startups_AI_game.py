@@ -614,16 +614,16 @@ def avoid_loss_ai_pickup_strategy(player, market, deck, player_list):
                     bad_choices.append(c)
                 else:
                     good_choices.append(c)
-    print("Pickup:")
-    print("Good choices:")
-    print([str(g) for g in good_choices])
-    print("Bad choices:")
-    print([str(b) for b in bad_choices])
+    #print("Pickup:")
+    #print("Good choices:")
+    #print([str(g) for g in good_choices])
+    #print("Bad choices:")
+    #print([str(b) for b in bad_choices])
     if len(good_choices) == 0:
         good_choices = bad_choices
 
     choice = random.choice(good_choices)
-    print(f"Chosen pickup action: {choice}")
+    #print(f"Chosen pickup action: {choice}")
     return choice
 
 def avoid_loss_ai_putdown_strategy(player, market, deck, player_list):

@@ -31,72 +31,77 @@ class StartupsEnv(Env):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         
     def step(self, action_id):
-        # I think the problem is when the agent isn't the first player to go
-        # in that case there won't be any valid actions returned by the action check
-        # I want this function to use GameStateController and run the other players' turn for as long as it's not the agent's turn
-        # then when the agent goes we check whether the action_id fed into step produces a valid action
-        players_to_check = len(self.player_list)
-        players_gone = 0
-        p_gone_list = []
         reward = 0
-        if action_id not in self.action_mapping:
-            return self.state, reward-10, False, False, {"invalid_action": True}
-
         done = False
         info = {}
         
-        action = self.action_mapping[action_id]  # Predetermined by RL agent
+        # First, handle other players' turns until it's the RL agent's turn
+        while (self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS):
+            self._execute_other_players_turn()
         
-        while players_gone < players_to_check:
-            if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP:
-                if not self._return_valid_action_check(action):
-                    return self.state, reward-10, True, False, {"invalid_action": True}
+        # Now it should be the RL agent's turn
+        current_phase = self.state_controller.get_current_phase()
+        print(f"Step starting - Current phase: {current_phase}, Hand size: {len(self.agent_player._hand)}")
 
-                try:
-                    sg.execute_pickup(self.agent_player, action, self.market, self.deck)
-                    reward += 1
-                    self.state_controller._change_phase()
-                except:
-                    return self.state, -10, False, False, {"invalid_action": True}
-            elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN:
-                if not self._return_valid_action_check(action):
-                    return self.state, reward-10, True, False, {"invalid_action": True}
-                try:
-                    sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
-                    reward += 1
-                    self.state_controller._change_phase()
-                    players_gone += 1
-                    p_gone_list.append(self.agent_player)
-                except:
-                    return self.state, -10, False, False, {"invalid_action": True}
-            elif self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS:
-                for p in self.player_list:
-                    if p != self.agent_player and p not in p_gone_list:
-                        # need to decide whether random or avoid_loss
-                        pickup_action = p.pickup_strategy(p, self.market, self.deck, self.player_list)
-                        if pickup_action:
-                            sg.execute_pickup(p, pickup_action, self.market, self.deck)
-
-                        putdown_action = p.putdown_strategy(p, self.market, self.deck, self.player_list)
-                        if putdown_action:
-                            sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
-                            self.state_controller._change_phase()
-                            players_gone += 1
-                            p_gone_list.append(p)
-
+        if self.state_controller.get_current_phase() not in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]:
+            return self.state, reward, False, False, {"error": "Not RL agent's turn"}
+        
+        # Validate the action
+        if action_id not in self.action_mapping:
+            return self.state, reward-10, False, False, {"invalid_action": True}
+        
+        action = self.action_mapping[action_id]
+        stop = False
+        
+        # Execute RL agent's turn
+        if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP and stop == False:
+            if not self._return_valid_action_check(action):
+                print(f"Invalid pickup action attempted: {action}")
+                return self.state, reward-10, True, False, {"invalid_action": True}
+            try:
+                print(f"Executing action {action} in phase {current_phase}")
+                print(f"Hand size before action: {len(self.agent_player._hand)}")
+        
+                sg.execute_pickup(self.agent_player, action, self.market, self.deck)
+                reward += 0.1
+                print(f"Pickup executed. New hand size: {len(self.agent_player._hand)}")
+                stop = True
+            except:
+                print(f"Error executing pickup: {e}")
+                return self.state, -10, False, False, {"invalid_action": True}
+                
+        elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN and stop == False:
+            if not self._return_valid_action_check(action):
+                print(f"Invalid putdown action attempted: {action}")
+                return self.state, reward-10, True, False, {"invalid_action": True}
+            try:
+                sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
+                reward += 0.1
+                print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
+                stop = True
+            except:
+                return self.state, -10, False, False, {"invalid_action": True}
+        
+        # After RL agent's turn, execute remaining other players if needed
+        self.state_controller._change_phase()
+        while (self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS):
+            self._execute_other_players_turn()
+        
+        reward +- 0.201
         reward += self._calculate_reward(self.agent_player)
         info = {"intermediate_reward": reward}
-
+        
         terminated = len(self.deck) == 0        
-
+        
         if terminated:
             sg.end_game_and_score(self.player_list, self.company_list)
             reward += self._calculate_final_reward()
             info = {"final_reward": reward}
-
+        
         self._setup_action_space()
-
-        return self._get_observation(), reward, terminated, False, info
+        self.state = self._get_observation()
+        
+        return self.state, reward, terminated, False, info
 
     def reset(self):
         self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
@@ -108,6 +113,22 @@ class StartupsEnv(Env):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
         self.game_round = 0
         return self.state, {"info": "Game reset"}
+
+    def reward_and_return(self):
+        reward += self._calculate_reward(self.agent_player)
+        info = {"intermediate_reward": reward}
+        
+        terminated = len(self.deck) == 0        
+        
+        if terminated:
+            sg.end_game_and_score(self.player_list, self.company_list)
+            reward += self._calculate_final_reward()
+            info = {"final_reward": reward}
+        
+        self._setup_action_space()
+        self.state = self._get_observation()
+        
+        return self.state, reward, terminated, False, info
 
     def _get_observation(self):
         player = self.agent_player
@@ -220,15 +241,34 @@ class StartupsEnv(Env):
 
     def _return_valid_action_check(self, action):
         choices = []
+        # I think your action is returning [type, target] where target is a card object
+        # and maybe you're comparing it to something where the target is a company
+        print(f"Checking validity of action: {action}")
         if self.state_controller.current_phase == TurnPhase.RL_PICKUP:
             choices = sg.return_all_pickup_choices(self.agent_player, self.market)
+            print(f"Available pickup choices: {[(i.type, i.target) for i in choices]}")
+            print(f"Agent hand: {[(i._company) for i in self.agent_player._hand]}")
+            #print(f"Agent shares: {[(i.type, i.target) for i in self.agent_player._shares]}")
         elif self.state_controller.current_phase == TurnPhase.RL_PUTDOWN:
             choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
+            print(f"Available putdown choices: {[(i.type, i.target) for i in choices]}")
+            print(f"Agent hand: {[(i._company) for i in self.agent_player._hand]}")
+            #print(f"Agent shares: {[(i[0], i[1]) for i in self.agent_player._shares]}")
+
+        action_company = action.target._company if hasattr(action.target, '_company') else getattr(action.target, '_name', action.target)
 
         check = False
         for c in choices:
+            choice_company = c.target._company if hasattr(c.target, '_company') else getattr(c.target, '_name', c.target)
             if action == c:
-                check = True    
+                check = True
+            elif str(action) == str(c):
+                check = True
+            elif action.type == c.type and action_company == choice_company:
+                check = True
+            #elif action[0] == c[0] and action[1] == c[1]:
+            #check = True
+        print(f"Action valid: {check}")
         return check
 
     def get_valid_actions(self, state):
@@ -259,6 +299,32 @@ class StartupsEnv(Env):
         could add more rewards as training continues, e.g. add coin rewards later
         could compare with the avoid_loss_ai or random_ai
         """
+    def _execute_other_players_turn(self):
+        """Execute one other player's turn and advance the game state"""
+        current_player = None
+        
+        # Find the current non-RL player
+        for i, p in enumerate(self.player_list):
+            if i == self.state_controller.current_player_index and p != self.agent_player:
+                current_player = p
+                break
+        
+        if current_player is None:
+            # If no current player found, advance to next
+            self.state_controller._advance_to_next_player()
+            return
+        
+        # Execute the current player's turn
+        pickup_action = current_player.pickup_strategy(current_player, self.market, self.deck, self.player_list)
+        if pickup_action:
+            sg.execute_pickup(current_player, pickup_action, self.market, self.deck)
+        
+        putdown_action = current_player.putdown_strategy(current_player, self.market, self.deck, self.player_list)
+        if putdown_action:
+            sg.execute_putdown(current_player, putdown_action, self.player_list, self.market, self.company_list)
+        
+        # Advance to next player
+        self.state_controller._advance_to_next_player()
 
     def _calculate_player_rank(self):
         rl_player = self.agent_player
@@ -348,13 +414,16 @@ class GameStateController:
             return TurnPhase.OTHER_PLAYERS
 
     def _advance_to_next_player(self):
-        if self.current_player_index == len(self.player_list) - 1:
-            self.current_player_index = 0
-        else:
-            self.current_player_index += 1
-
+        """Advance to the next player in turn order"""
+        self.current_player_index = (self.current_player_index + 1) % len(self.player_list)
+        
         if self.player_list[self.current_player_index] == self.agent_player:
+            # If it's the RL agent's turn, set appropriate phase
+            #if len(self.agent_player._hand) < 4:
+            print(f"RL agent's turn. Hand size: {len(self.agent_player._hand)}")
             self.current_phase = TurnPhase.RL_PICKUP
+            #else:
+            #self.current_phase = TurnPhase.RL_PUTDOWN
         else:
             self.current_phase = TurnPhase.OTHER_PLAYERS
 
@@ -369,12 +438,14 @@ class GameStateController:
 
     def _change_phase(self):
         hand_size = len(self.agent_player._hand)
+        print(f"Changing phase. Current phase: {self.current_phase}, Hand size: {hand_size}")
         if self.current_phase == TurnPhase.RL_PICKUP and hand_size == 4:
             self.current_phase = TurnPhase.RL_PUTDOWN
         elif self.current_phase == TurnPhase.RL_PUTDOWN and hand_size == 3:
             self.current_phase = TurnPhase.OTHER_PLAYERS
         elif self.current_phase == TurnPhase.OTHER_PLAYERS:
             self._advance_to_next_player()
+        print(f"New phase: {self.current_phase}, Hand size: {hand_size}")
 """
     def is_rl_agent_turn(self):
         return self.current_phase in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]

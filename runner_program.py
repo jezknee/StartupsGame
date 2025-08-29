@@ -52,13 +52,14 @@ if __name__ == '__main__':
        
         print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=10, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model4.keras')
+        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=64, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model4.keras')
         print("Agent created successfully")
 
         scores = []
         eps_history = []
+        num_episodes = 10
 
-        for i in range(agent.batch_size):
+        for i in range(num_episodes):
             print(f"Starting episode {i}")
             done = False
             score = 0
@@ -68,30 +69,55 @@ if __name__ == '__main__':
                 print(f"Episode {i} - Initial observation shape: {observation.shape}")
             except Exception as e:
                 print(f"Error during env.reset(): {e}")
+                traceback.print_exc()
                 continue
             
             step_count = 0
-            while not done:
+            rl_actions_taken = 0
+            max_steps = 30
+
+            while not done and step_count < max_steps:
                 try:
-                    if env.state_controller.get_current_phase() in (sr.TurnPhase.RL_PUTDOWN, sr.TurnPhase.RL_PICKUP):
+                    current_phase = env.state_controller.get_current_phase()
+                    print(f"Step {step_count}, Phase: {current_phase}")
+
+                    if current_phase in (sr.TurnPhase.RL_PUTDOWN, sr.TurnPhase.RL_PICKUP):
                         action = agent.choose_action(observation, env)
+                        print(f"RL agent choosing action {action}")
+                        rl_actions_taken += 1
+
                         observation_, reward, terminated, truncated, info = env.step(action)
                         done = terminated or truncated
                         
+                        if 'invalid_action' in info and info['invalid_action']:
+                            print(f"Invalid action taken: {action}")
+
                         agent.remember(observation, action, reward, observation_, done)
                         observation = observation_
                         score += reward
-                        agent.learn()
-                    
+
+                        if agent.memory.mem_cntr > agent.batch_size:
+                            agent.learn()
+
+                        print(f"Action {action}, Reward: {reward}, Score: {score}")
+                        
+                    else:
+                        # Not RL agent's turn - step anyway to advance game state
+                        # Pass a dummy action (0) since other players will be handled internally
+                        observation_, reward, terminated, truncated, info = env.step(0)
+                        done = terminated or truncated
+                        observation = observation_
+                        print(f"Other players' turn, game state advanced")
+
                     step_count += 1
-                    if step_count > 1000:
-                        print("Episode exceeded 1000 steps, ending...")
-                        break
                         
                 except Exception as e:
                     print(f"Error during step {step_count} of episode {i}: {e}")
                     traceback.print_exc()
                     break
+            
+            if step_count >= max_steps:
+                print(f"Episode {i} exceeded {max_steps} steps, ending...")
         
             eps_history.append(agent.epsilon)
             scores.append(score)
@@ -105,6 +131,13 @@ if __name__ == '__main__':
                     print(f"Model saved at episode {i}")
                 except Exception as e:
                     print(f"Error saving model: {e}")
+
+        # Final model save
+        try:
+            agent.save_model()
+            print("Final model saved")
+        except Exception as e:
+            print(f"Error saving final model: {e}")
 
         print("Training completed, creating plot...")
         filename = 'startups1000.png'
