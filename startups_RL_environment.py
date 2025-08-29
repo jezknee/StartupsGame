@@ -34,6 +34,7 @@ class StartupsEnv(Env):
         reward = 0
         done = False
         info = {}
+        g_round = 0
         
         # First, handle other players' turns until it's the RL agent's turn
         while (self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS):
@@ -44,20 +45,21 @@ class StartupsEnv(Env):
         print(f"Step starting - Current phase: {current_phase}, Hand size: {len(self.agent_player._hand)}")
 
         if self.state_controller.get_current_phase() not in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]:
-            return self.state, reward, False, False, {"error": "Not RL agent's turn"}
+            return self.state, reward, False, True, {"error": "Not RL agent's turn"}
         
         # Validate the action
         if action_id not in self.action_mapping:
-            return self.state, reward-10, False, False, {"invalid_action": True}
+            return self.state, reward-10, False, True, {"invalid_action": True}
         
         action = self.action_mapping[action_id]
         stop = False
         
         # Execute RL agent's turn
         if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP and stop == False:
+            g_round += 1
             if not self._return_valid_action_check(action):
                 print(f"Invalid pickup action attempted: {action}")
-                return self.state, reward-10, True, False, {"invalid_action": True}
+                return self.state, reward-10, False, True, {"invalid_action": True}
             try:
                 print(f"Executing action {action} in phase {current_phase}")
                 print(f"Hand size before action: {len(self.agent_player._hand)}")
@@ -68,26 +70,26 @@ class StartupsEnv(Env):
                 stop = True
             except:
                 print(f"Error executing pickup: {e}")
-                return self.state, -10, False, False, {"invalid_action": True}
+                return self.state, -10, False, True, {"invalid_action": True}
                 
         elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN and stop == False:
             if not self._return_valid_action_check(action):
                 print(f"Invalid putdown action attempted: {action}")
-                return self.state, reward-10, True, False, {"invalid_action": True}
+                return self.state, reward-10, False, True, {"invalid_action": True}
             try:
                 sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
                 reward += 0.1
                 print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
             except:
-                return self.state, -10, False, False, {"invalid_action": True}
+                return self.state, -10, False, True, {"invalid_action": True}
         
         # After RL agent's turn, execute remaining other players if needed
         self.state_controller._change_phase()
         while (self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS):
             self._execute_other_players_turn()
-        
-        reward +- 0.201
+
+        reward -= (g_round / 50 if g_round > 10 else 0)
         reward += self._calculate_reward(self.agent_player)
         info = {"intermediate_reward": reward}
         
@@ -243,16 +245,16 @@ class StartupsEnv(Env):
         choices = []
         # I think your action is returning [type, target] where target is a card object
         # and maybe you're comparing it to something where the target is a company
-        print(f"Checking validity of action: {action}")
+        #print(f"Checking validity of action: {action}")
         if self.state_controller.current_phase == TurnPhase.RL_PICKUP:
             choices = sg.return_all_pickup_choices(self.agent_player, self.market)
-            print(f"Available pickup choices: {[(i.type, i.target) for i in choices]}")
-            print(f"Agent hand: {[(i._company) for i in self.agent_player._hand]}")
+            #print(f"Available pickup choices: {[(i.type, i.target) for i in choices]}")
+            #print(f"Agent hand: {[(i._company) for i in self.agent_player._hand]}")
             #print(f"Agent shares: {[(i.type, i.target) for i in self.agent_player._shares]}")
         elif self.state_controller.current_phase == TurnPhase.RL_PUTDOWN:
             choices = sg.return_all_putdown_choices(self.agent_player, self.company_list)
-            print(f"Available putdown choices: {[(i.type, i.target) for i in choices]}")
-            print(f"Agent hand: {[(i._company) for i in self.agent_player._hand]}")
+            #print(f"Available putdown choices: {[(i.type, i.target) for i in choices]}")
+            #print(f"Agent hand: {[(i._company) for i in self.agent_player._hand]}")
             #print(f"Agent shares: {[(i[0], i[1]) for i in self.agent_player._shares]}")
 
         action_company = action.target._company if hasattr(action.target, '_company') else getattr(action.target, '_name', action.target)
@@ -268,18 +270,18 @@ class StartupsEnv(Env):
                 check = True
             #elif action[0] == c[0] and action[1] == c[1]:
             #check = True
-        print(f"Action valid: {check}")
+        #print(f"Action valid: {check}")
         return check
 
     def get_valid_actions(self, state):
         choices = self.action_mapping.items()
         valid_actions = [action_id for action_id, action in self.action_mapping.items() if self._return_valid_action_check(action)]
 
-        for c in choices:
-                print("Choice:", c[0], c[1], "in action_mapping?", c in self.action_mapping.values())
-        print("Phase:", self.state_controller.get_current_phase())
-        if len(valid_actions) == 0:
-            print("BUG: No valid actions found!")
+        #for c in choices:
+                #print("Choice:", c[0], c[1], "in action_mapping?", c in valid_actions)
+        #print("Phase:", self.state_controller.get_current_phase())
+        #if len(valid_actions) == 0:
+            #print("BUG: No valid actions found!")
             #print("Choices returned:", choices)
             #print("Action mapping values:", list(self.action_mapping.values())[:10])
             

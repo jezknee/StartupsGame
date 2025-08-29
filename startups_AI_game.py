@@ -3,10 +3,10 @@ import time
 #import startups_RL_environment
 
 class Company:
-    def __init__(self, name, total_shares, current_shares):
+    def __init__(self, name, total_shares):
         self._name = name
         self._total_shares = total_shares
-        self._current_shares = current_shares
+        #self._current_shares = current_shares
     def get_share_count(self, player):
         share_count = 0
         for card in player._shares:
@@ -33,7 +33,7 @@ class Company:
     def __hash__(self):
         return hash(self._name)  # hash based only on name
     def __str__(self):
-        return f"(Name: {self._name}, Total Shares: {self._total_shares}, Current Shares: {self._current_shares})"
+        return f"(Name: {self._name}, Total Shares: {self._total_shares})"
 
 class Player:
     def __init__(self, number, coins, hand, shares, chips, human):
@@ -144,7 +144,7 @@ game_stages = ["pick_up", "put_down", "scoring"]
 def create_companies(starting_company_list):
     company_objects = []
     for c in starting_company_list:
-        company = Company(c[0], c[1], 0)
+        company = Company(c[0], c[1])
         company_objects.append(company)
     return company_objects
 
