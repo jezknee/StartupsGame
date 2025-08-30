@@ -57,7 +57,7 @@ if __name__ == '__main__':
        
         print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=64, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='startup_model4.keras')
+        agent = Agent(alpha=0.0005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=64, input_dims=env.observation_space.shape[0], epsilon_dec=0.996, epsilon_end=0.01, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model4.keras')
         print("Agent created successfully")
 
         game_history = []
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
         scores = []
         eps_history = []
-        num_episodes = 1000
+        num_episodes = 5000
 
         for i in range(num_episodes):
             print(f"Starting episode {i}")

@@ -201,7 +201,9 @@ def create_players_RL(no_players, no_humans):
     assign_avoid_loss_strategy_to = random.choice([1,4])
     assign_avoid_loss_strategy_to_2 = random.choice([1,4])
     assign_avoid_loss_strategy_to_3 = random.choice([1,4])
-    assign_avoid_loss_strategy_to_4 = random.choice([1,4])
+    #assign_avoid_loss_strategy_to_4 = random.choice([1,4])
+    assign_gain_money_strategy_to_1 = random.choice([1,4])
+    #assign_gain_money_strategy_to_2 = random.choice([1,4])
     while n <= no_players:
         if humans_created < no_humans:
             player = Player(n, 10, [], [], set(), True)
@@ -210,9 +212,12 @@ def create_players_RL(no_players, no_humans):
             humans_created += 1
         elif humans_created == no_humans:
             player = Player(n, 10, [], [], set(), False)
-            if n == assign_avoid_loss_strategy_to or n == assign_avoid_loss_strategy_to_2 or n == assign_avoid_loss_strategy_to_3 or n == assign_avoid_loss_strategy_to_4:
+            if n == assign_avoid_loss_strategy_to or n == assign_avoid_loss_strategy_to_2 or n == assign_avoid_loss_strategy_to_3:
                 player.pickup_strategy = avoid_loss_ai_pickup_strategy
                 player.putdown_strategy = avoid_loss_ai_putdown_strategy
+            elif n == assign_gain_money_strategy_to_1:
+                player.pickup_strategy = gain_money_ai_pickup_strategy
+                player.putdown_strategy = lose_unwanted_cards_ai_putdown_strategy
             else:
                 player.pickup_strategy = random_ai_pickup_strategy
                 player.putdown_strategy = random_ai_putdown_strategy
@@ -408,9 +413,9 @@ def putting_down_card(player, action, player_list, market, company_list, card_co
             p.remove_chip(company_obj, player_list)
     elif action == 'putdown_market':
         company_name = card_company._name if hasattr(card_company, '_name') else card_company
-        print(f"DEBUG: Attempting to put down {company_name} to market")
-        print(f"DEBUG: Player's hand: {[(c._company, type(c._company)) for c in player._hand]}")
-        print(f"DEBUG: Looking for company: {card_company} (type: {type(card_company)})")
+        print(f"Put down {company_name} to market")
+        #print(f"DEBUG: Player's hand: {[(c._company, type(c._company)) for c in player._hand]}")
+        #print(f"DEBUG: Looking for company: {card_company} (type: {type(card_company)})")
         
         chosen_card = None
         for c in player._hand:
@@ -594,7 +599,7 @@ def random_ai_pickup_strategy(player, market, deck, player_list):
     if choice == "pickup_market":
         target_company = input_card_for_pick_up(player, market)
         action_type = "pickup_market"
-        print(f"Player {player._number} picks up from market.")
+        print(f"Player {player._number} picks up {target_company} from market.")
         return Action(action_type, target_company)
     else:
         print(f"Player {player._number} picks up from deck.")
@@ -685,16 +690,95 @@ def avoid_loss_ai_putdown_strategy(player, market, deck, player_list):
                     good_choices.append(c)
             else:
                 good_choices.append(c)
-    print("Putdown:")
-    print("Good choices:")
-    print([str(g) for g in good_choices])
-    print("Bad choices:")
-    print([str(b) for b in bad_choices])
+    #print("Putdown:")
+    #print("Good choices:")
+    #print([str(g) for g in good_choices])
+    #print("Bad choices:")
+    #print([str(b) for b in bad_choices])
     if len(good_choices) == 0:
         good_choices = bad_choices
     
     choice = random.choice(good_choices)
-    print(f"Chosen putdown action: {choice}")
+    print(f"Player {player._number} puts down {choice.target} {choice}.")
+    #print(f"Chosen putdown action: {choice}")
+    return choice
+
+def gain_money_ai_pickup_strategy(player, market, deck, player_list):
+    #time.sleep(1)
+    choices = return_all_pickup_choices(player, market)
+    #print(choices)
+    good_choices = []
+    ok_choices = []
+    bad_choices = []
+    for c in choices:
+        #if c.target is None:
+        #    continue
+        if c.type == "pickup_deck" and len(choices) > 1:
+            bad_choices.append(c)
+        elif c.type == "pickup_deck":
+            good_choices.append(c)
+        else:
+            if c.type == "pickup_market" and c.target is not None:
+                for card in market:
+                    if card._company == c.target:
+                        ok_choices.append(c)
+                        if card._coins_on > 1:
+                            good_choices.append(c)
+                        break
+
+    #print("Pickup:")
+    #print("Good choices:")
+    #print([str(g) for g in good_choices])
+    #print("Bad choices:")
+    #print([str(b) for b in bad_choices])
+    if len(good_choices) == 0:
+        good_choices = ok_choices
+    elif len(good_choices) == 0 and len(ok_choices) == 0:
+        good_choices = bad_choices
+
+    choice = random.choice(good_choices)
+    #print(f"Chosen pickup action: {choice}")
+    return choice
+
+def lose_unwanted_cards_ai_putdown_strategy(player, market, deck, player_list):
+    choices = return_all_putdown_choices(player, market)
+
+    good_choices = []
+    ok_choices = []
+    bad_choices = []
+    for c in choices:
+        company_name = c.target
+        count_card_for_player = count_card(player, company_name)
+        count_card_in_market = get_card_dictionary(market).get(company_name, 0)
+        for p in player_list:
+            shares_dict = get_card_dictionary(p._shares)
+            if c.type == "putdown_market":
+                if count_card_for_player > 1:
+                    bad_choices.append(c)
+                elif count_card_in_market > 0:
+                    good_choices.append(c)
+                else:
+                    ok_choices.append(c)
+            elif c.type == "putdown_shares":
+                if shares_dict.get(company_name, 0) >= count_card_for_player:
+                    bad_choices.append(c)
+                else:
+                    good_choices.append(c)
+            else:
+                good_choices.append(c)
+    #print("Putdown:")
+    #print("Good choices:")
+    #print([str(g) for g in good_choices])
+    #print("Bad choices:")
+    #print([str(b) for b in bad_choices])
+    if len(good_choices) == 0:
+        good_choices = ok_choices
+    elif len(good_choices) == 0 and len(ok_choices) == 0:
+        good_choices = bad_choices
+    
+    choice = random.choice(good_choices)
+    print(f"Player {player._number} puts down {choice.target} {choice}.")
+    #print(f"Chosen putdown action: {choice}")
     return choice
 
 def execute_pickup(player, action, market, deck):

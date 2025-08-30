@@ -290,7 +290,8 @@ class StartupsEnv(Env):
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
-        return -0.01
+        reward = self.more_cards_reward() - 0.01
+        return reward
         """
         # Only reward getting coins
         coin_change = player._coins - prev_coins
@@ -301,6 +302,20 @@ class StartupsEnv(Env):
         could add more rewards as training continues, e.g. add coin rewards later
         could compare with the avoid_loss_ai or random_ai
         """
+
+    def more_cards_reward(self):
+        reward = 0
+        for card in self.agent_player._hand:
+            company_name = card._company
+            count_card_for_player = sg.count_card(self.agent_player, company_name)
+            for p in self.player_list:
+                shares_dict = sg.get_card_dictionary(p._shares)
+                if shares_dict.get(company_name, 0) > (count_card_for_player) and count_card_for_player > 0:
+                    reward -= 0.5
+                elif shares_dict.get(company_name, 0) < (count_card_for_player + 1) and shares_dict.get(company_name, 0) > 0:
+                    reward += 0.5
+        return reward
+
     def _execute_other_players_turn(self):
         """Execute one other player's turn and advance the game state"""
         current_player = None
@@ -341,7 +356,7 @@ class StartupsEnv(Env):
         rl_rank = self._calculate_player_rank()
         reward_for_winning = 100
         total_players = len(self.player_list)
-        reward_given_rank = reward_for_winning - (rl_rank+1) * total_players + (self.agent_player._coins / total_players)
+        reward_given_rank = (reward_for_winning / (2**rl_rank)) + (self.agent_player._coins / total_players)
         # again, might want to come up with a different function here
         return reward_given_rank
 
