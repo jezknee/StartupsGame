@@ -135,7 +135,9 @@ if __name__ == '__main__':
                 'runtime': episode_runtime,
                 'steps': step_count,
                 'rl_actions': rl_actions_taken,
-                'epsilon': agent.epsilon
+                'epsilon': agent.epsilon,
+                'rl_rank': env._calculate_player_rank()+1,
+                'rl_coins': env._get_coins_for_score()
             })
             eps_history.append(agent.epsilon)
             scores.append(score)

@@ -334,11 +334,14 @@ class StartupsEnv(Env):
         rl_player_rank = sorted_players.index(rl_player) if rl_player in sorted_players else -1
         return rl_player_rank
 
+    def _get_coins_for_score(self):
+        return self.agent_player._coins
+
     def _calculate_final_reward(self):
         rl_rank = self._calculate_player_rank()
         reward_for_winning = 100
         total_players = len(self.player_list)
-        reward_given_rank = reward_for_winning - (rl_rank / total_players) + self.agent_player._coins
+        reward_given_rank = reward_for_winning - (rl_rank+1) * total_players + (self.agent_player._coins / total_players)
         # again, might want to come up with a different function here
         return reward_given_rank
 

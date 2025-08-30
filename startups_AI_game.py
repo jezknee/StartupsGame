@@ -355,9 +355,11 @@ def put_down_action_choice(player):
     """Return list of valid putdown actions for the player"""
     choices = []
     if len(player._hand) > 0:
-        for action in player_actions_put_down:
-            if check_put_down_card_to_market(player, action):
-                choices.append(action)
+        for action_type in player_actions_put_down:
+            if action_type == "putdown_shares":
+                choices.append(action_type)
+            elif check_put_down_card_to_market(player, action_type):
+                choices.append(action_type)
 
     return choices
 
@@ -390,13 +392,14 @@ def picking_up_card(player, action, market, deck):
 def putting_down_card(player, action, player_list, market, company_list, card_company):
     if action == 'putdown_shares':
         chosen_card = None
+        company_name = card_company._name if hasattr(card_company, '_name') else card_company
         for c in player._hand:
-            if c._company == card_company:
+            if c._company == company_name:
                 chosen_card = c
                 break
         company_obj = None
         for company in company_list:
-            if company._name == card_company:
+            if company._name == company_name:
                 company_obj = company
                 break
         player.add_card_to_shares(chosen_card)
@@ -404,13 +407,19 @@ def putting_down_card(player, action, player_list, market, company_list, card_co
         for p in player_list:
             p.remove_chip(company_obj, player_list)
     elif action == 'putdown_market':
+        company_name = card_company._name if hasattr(card_company, '_name') else card_company
+        print(f"DEBUG: Attempting to put down {company_name} to market")
+        print(f"DEBUG: Player's hand: {[(c._company, type(c._company)) for c in player._hand]}")
+        print(f"DEBUG: Looking for company: {card_company} (type: {type(card_company)})")
+        
         chosen_card = None
         for c in player._hand:
-            if c._company == card_company:
+            if c._company == company_name:
                 chosen_card = c
                 break
         if chosen_card is None:
-            print(f"No '{card_company}' in hand to put to market.")
+            print(f"No '{company_name}' in hand to put to market.")
+            print(f"Hand contents: {[c._company for c in player._hand]}")
             return False
         player.add_card_to_market(chosen_card, market)
 
@@ -567,6 +576,10 @@ def human_putdown_strategy(player, market, deck, player_list):
         if choice in down_options:
             target_company = input_card_for_put_down(player)
             action_type = "putdown_shares" if choice == "putdown_shares" else "putdown_market"
+            if action_type == "putdown_market":
+                if not check_put_down_card_to_market(player, target_company):
+                    print("You can't put that card into the market. Please choose again.")
+                    continue
             return Action(action_type, target_company)
         else:
             print("That's not an option. Please try again.")
@@ -596,6 +609,11 @@ def random_ai_putdown_strategy(player, market, deck, player_list):
     while True:
         choice = random.choice(choices)
         target_company = input_card_for_put_down(player)
+        if choices == "putdown_market":
+            if not check_put_down_card_to_market(player, target_company):
+                print("You can't put that card into the market. Please choose again.")
+                continue
+        
         print(f"Player {player._number} puts down {target_company} {choice}.")
         action_type = "putdown_shares" if choice == "putdown_shares" else "putdown_market"
         return Action(action_type, target_company)
