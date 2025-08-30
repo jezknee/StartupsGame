@@ -43,14 +43,16 @@ class Player:
         self._shares = shares
         self._chips = chips
         self._human = human
+        self._last_pickup = None
     def take_card_from_pile(self, deck):
         self._hand.append(deck[0])
+        self._last_pickup = deck[0]
         del deck[0]
     def take_card_from_market(self, market, company_name):
         # take card of given company with most coins
         if company_in_market(market, company_name):
             if not self.check_for_chip(company_name):
-                best_card = None 
+                best_card = None
                 max_coins = -1
                 completed = False
                 for c in market:
@@ -64,17 +66,21 @@ class Player:
                     market.remove(best_card)
                     best_card._coins_on = 0
                     self._hand.append(best_card)
+                    self._last_pickup = best_card
 
             elif self.check_for_chip(company_name):
                 print("You've got the anti-monopoly chip for that company, you can't play it")
+
         else:
             print("There isn't one of these in the market.")
     def add_card_to_shares(self, card):
         self._shares.append(card)
         self._hand.remove(card)
+        self._last_pickup = None
     def add_card_to_market(self, card, market):
         market.append(card)
         self._hand.remove(card)
+        self._last_pickup = None
     def add_chip(self, company, player_list):
         if check_for_monopoly(player_list, company) == False:
             self._chips.add(company)
@@ -95,6 +101,11 @@ class Player:
             if chip._name == company_name:
                 has_monopoly = True 
         return has_monopoly
+    def check_for_picked_up(self, company_name):
+        picked_up = False
+        if self._last_pickup is not None and self._last_pickup._company == company_name:
+            picked_up = True
+        return picked_up
     def put_hand_in_shares(self):
         hand_copy = self._hand.copy()
         for card in hand_copy:
@@ -289,6 +300,14 @@ def check_pick_up_card(player, card):
         check = False
     return check
 
+def check_put_down_card_to_market(player, card):
+    check = True
+    if card not in player._hand:
+        check = False
+    elif card._company == player._last_pickup._company:
+        check = False
+    return check
+
 def get_all_game_actions(player_actions_pick_up, player_actions_put_down, company_list):
     # gets whole list of actions, whether possible or not
     # returns tuples of (action_type, target_company)
@@ -335,12 +354,11 @@ def pick_up_action_choice(player, market, deck):
 def put_down_action_choice(player):
     """Return list of valid putdown actions for the player"""
     choices = []
-    
-    # Player can only put down cards if they have cards in hand
     if len(player._hand) > 0:
         for action in player_actions_put_down:
-            choices.append(action)  # Both "to shares" and "to market" are always valid if you have cards
-    
+            if check_put_down_card_to_market(player, action):
+                choices.append(action)
+
     return choices
 
 def picking_up_card(player, action, market, deck):
@@ -453,7 +471,8 @@ def return_all_putdown_choices(player, market):
         hand_cards.append(c)
     for s in hand_cards:
         actions.append(Action("putdown_shares", s._company))
-        actions.append(Action("putdown_market", s._company))
+        if not player.check_for_picked_up(s._company):
+            actions.append(Action("putdown_market", s._company))
     return actions
 
 def input_card_for_put_down(player):

@@ -65,7 +65,7 @@ class StartupsEnv(Env):
                 print(f"Hand size before action: {len(self.agent_player._hand)}")
         
                 sg.execute_pickup(self.agent_player, action, self.market, self.deck)
-                reward += 0.1
+                #reward += 0.1
                 print(f"Pickup executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
             except:
@@ -78,7 +78,7 @@ class StartupsEnv(Env):
                 return self.state, reward-10, False, True, {"invalid_action": True}
             try:
                 sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
-                reward += 0.1
+                #reward += 0.1
                 print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
             except:
