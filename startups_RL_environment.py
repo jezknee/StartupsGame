@@ -225,6 +225,7 @@ class StartupsEnv(Env):
     def print_action_mapping(self):
         #print("Action Space Mapping:")
         for action_id, action in self.action_mapping.items():
+            pass
             # Assuming Action objects have attributes like .type and .target
             #print(f"  Action {action_id}: {action.type} {action.target if hasattr(action, 'target') and action.target else ''}")
 
