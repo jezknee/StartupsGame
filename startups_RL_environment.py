@@ -42,7 +42,7 @@ class StartupsEnv(Env):
         
         # Now it should be the RL agent's turn
         current_phase = self.state_controller.get_current_phase()
-        print(f"Step starting - Current phase: {current_phase}, Hand size: {len(self.agent_player._hand)}")
+        #print(f"Step starting - Current phase: {current_phase}, Hand size: {len(self.agent_player._hand)}")
 
         if self.state_controller.get_current_phase() not in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]:
             return self.state, reward, False, True, {"error": "Not RL agent's turn"}
@@ -58,28 +58,28 @@ class StartupsEnv(Env):
         if self.state_controller.get_current_phase() == TurnPhase.RL_PICKUP and stop == False:
             g_round += 1
             if not self._return_valid_action_check(action):
-                print(f"Invalid pickup action attempted: {action}")
+                #print(f"Invalid pickup action attempted: {action}")
                 return self.state, reward-10, False, True, {"invalid_action": True}
             try:
-                print(f"Executing action {action} in phase {current_phase}")
-                print(f"Hand size before action: {len(self.agent_player._hand)}")
+                #print(f"Executing action {action} in phase {current_phase}")
+                #print(f"Hand size before action: {len(self.agent_player._hand)}")
         
                 sg.execute_pickup(self.agent_player, action, self.market, self.deck)
                 #reward += 0.1
-                print(f"Pickup executed. New hand size: {len(self.agent_player._hand)}")
+                #print(f"Pickup executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
             except:
-                print(f"Error executing pickup: {e}")
+                #print(f"Error executing pickup: {e}")
                 return self.state, -10, False, True, {"invalid_action": True}
                 
         elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN and stop == False:
             if not self._return_valid_action_check(action):
-                print(f"Invalid putdown action attempted: {action}")
+                #print(f"Invalid putdown action attempted: {action}")
                 return self.state, reward-10, False, True, {"invalid_action": True}
             try:
                 sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
                 #reward += 0.1
-                print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
+                #print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
             except:
                 return self.state, -10, False, True, {"invalid_action": True}
@@ -223,10 +223,10 @@ class StartupsEnv(Env):
         self.action_space = spaces.Discrete(len(self.action_mapping))
         
     def print_action_mapping(self):
-        print("Action Space Mapping:")
+        #print("Action Space Mapping:")
         for action_id, action in self.action_mapping.items():
             # Assuming Action objects have attributes like .type and .target
-            print(f"  Action {action_id}: {action.type} {action.target if hasattr(action, 'target') and action.target else ''}")
+            #print(f"  Action {action_id}: {action.type} {action.target if hasattr(action, 'target') and action.target else ''}")
 
     def _return_valid_actions(self):
         choices = []
@@ -440,7 +440,7 @@ class GameStateController:
         if self.player_list[self.current_player_index] == self.agent_player:
             # If it's the RL agent's turn, set appropriate phase
             #if len(self.agent_player._hand) < 4:
-            print(f"RL agent's turn. Hand size: {len(self.agent_player._hand)}")
+            #print(f"RL agent's turn. Hand size: {len(self.agent_player._hand)}")
             self.current_phase = TurnPhase.RL_PICKUP
             #else:
             #self.current_phase = TurnPhase.RL_PUTDOWN
@@ -458,14 +458,14 @@ class GameStateController:
 
     def _change_phase(self):
         hand_size = len(self.agent_player._hand)
-        print(f"Changing phase. Current phase: {self.current_phase}, Hand size: {hand_size}")
+        #print(f"Changing phase. Current phase: {self.current_phase}, Hand size: {hand_size}")
         if self.current_phase == TurnPhase.RL_PICKUP and hand_size == 4:
             self.current_phase = TurnPhase.RL_PUTDOWN
         elif self.current_phase == TurnPhase.RL_PUTDOWN and hand_size == 3:
             self.current_phase = TurnPhase.OTHER_PLAYERS
         elif self.current_phase == TurnPhase.OTHER_PLAYERS:
             self._advance_to_next_player()
-        print(f"New phase: {self.current_phase}, Hand size: {hand_size}")
+        #print(f"New phase: {self.current_phase}, Hand size: {hand_size}")
 """
     def is_rl_agent_turn(self):
         return self.current_phase in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]
