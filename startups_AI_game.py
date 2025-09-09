@@ -526,6 +526,14 @@ def create_game(default_companies, no_players, no_humans):
     deal_hands(deck, 3, player_list)
     return company_list, player_list, deck
 
+def create_game_RL(default_companies, no_players, no_humans):
+    company_list = create_companies(default_companies)
+    player_list = create_players_RL(no_players, no_humans)
+    deck = create_deck(company_list)
+    deck = prepare_deck(deck, 5)
+    deal_hands(deck, 3, player_list)
+    return company_list, player_list, deck
+
 def empty_hands(player_list):
     for player in player_list:
         player.put_hand_in_shares()

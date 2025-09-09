@@ -135,7 +135,7 @@ class Agent(object):
         # these \ are line breaks, by the way, just continues on next line
         q_target[batch_index, action_indices] = reward + self.gamma*np.max(q_next, axis=1)*done # best possible reward you could have received in the next state * done
         # made a correction here - changed *done to *(1-done)
-        _ = self.q_eval.fit(state, q_target, verbose=1)
+        _ = self.q_eval.fit(state, q_target, verbose=0)
         # this passes batch of states through network, calculates, then compares to q_target (delta between where we are and where we want to be)
 
         self.epsilon = self.epsilon*self.epsilon_dec if self.epsilon > self.epsilon_min else self.epsilon_min 

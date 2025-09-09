@@ -22,7 +22,7 @@ class StartupsEnv(Env):
         self.num_humans = num_humans
         self.game_round = 0
         self.default_company_list = default_company_list
-        self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
+        self.company_list, self.player_list, self.deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
         self.agent_player = self.random_RL_player_selection()
         self.market = []
         self.state_controller = GameStateController(self.player_list, self.agent_player)
@@ -291,7 +291,9 @@ class StartupsEnv(Env):
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
-        reward = self.more_cards_reward() - 0.01
+        #reward = self.more_cards_reward() - 0.01
+        reward = 0
+        reward += self._get_coins_for_score() * 0.01
         return reward
         """
         # Only reward getting coins
