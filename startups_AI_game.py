@@ -199,12 +199,12 @@ def create_players_RL(no_players, no_humans):
     n = 1
     humans_created = 0
     #assign_RL_strategy_to = random.choice([1,4])
-    assign_avoid_loss_strategy_to = random.choice([1,4])
-    assign_avoid_loss_strategy_to_2 = random.choice([1,4])
-    assign_avoid_loss_strategy_to_3 = random.choice([1,4])
+    assign_avoid_loss_strategy_to = 9 #random.choice([1,4])
+    assign_avoid_loss_strategy_to_2 = 9 #random.choice([1,4])
+    assign_avoid_loss_strategy_to_3 = 9 #random.choice([1,4])
     #assign_avoid_loss_strategy_to_4 = random.choice([1,4])
-    assign_gain_money_strategy_to_1 = random.choice([1,4])
-    #assign_gain_money_strategy_to_2 = random.choice([1,4])
+    assign_gain_money_strategy_to_1 = 9 #random.choice([1,4])
+    #assign_gain_money_strategy_to_2 =  random.choice([1,4])
     while n <= no_players:
         if humans_created < no_humans:
             player = Player(n, 10, [], [], set(), True)

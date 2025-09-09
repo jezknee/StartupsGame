@@ -69,7 +69,7 @@ def build_dpqn(lr, n_actions, input_dims, fcl_dims, fc2_dims):
     # this is very simple, even more so than PyTorch
 
 class Agent(object):
-    def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims, epsilon_dec=0.996, epsilon_end=0.01, mem_size=10000000, fname='dqn_model_t.keras'):
+    def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims, epsilon_dec=0.996, epsilon_end=0.01, mem_size=10000000, fname='dqn_model_rand.keras'):
         # gamma is our discount factor, epsilon for explore / exploit
         # need to look up why you want epsilon to gradually decrease (maybe less exploring over time?)
         # epsilon doesn't become 0 in testing, as you always want some exploring
@@ -134,7 +134,7 @@ class Agent(object):
         batch_index = np.arange(self.batch_size, dtype=np.int32)
         # these \ are line breaks, by the way, just continues on next line
         q_target[batch_index, action_indices] = reward + self.gamma*np.max(q_next, axis=1)*done # best possible reward you could have received in the next state * done
-
+        # made a correction here - changed *done to *(1-done)
         _ = self.q_eval.fit(state, q_target, verbose=1)
         # this passes batch of states through network, calculates, then compares to q_target (delta between where we are and where we want to be)
 
