@@ -292,8 +292,8 @@ class StartupsEnv(Env):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
         #reward = self.more_cards_reward() - 0.01
-        reward = 0
-        reward += self._get_coins_for_score() * 0.01
+        reward = 0.001
+        #reward += self._get_coins_for_score() * 0.01
         return reward
         """
         # Only reward getting coins
@@ -356,10 +356,16 @@ class StartupsEnv(Env):
         return self.agent_player._coins
 
     def _calculate_final_reward(self):
-        rl_rank = self._calculate_player_rank()
+        rl_rank = self._calculate_player_rank() # 0 is best
         reward_for_winning = 100
-        total_players = len(self.player_list)
-        reward_given_rank = (reward_for_winning / (2**rl_rank)) + (self.agent_player._coins / total_players)
+        if rl_rank == 0:
+            reward_given_rank = reward_for_winning + self.agent_player._coins
+        elif rl_rank == len(self.player_list) - 1:
+            reward_given_rank = -10
+        else:
+            reward_given_rank = 0
+        #total_players = len(self.player_list)
+        #reward_given_rank = (reward_for_winning / (2**rl_rank)) + (self.agent_player._coins / total_players)
         # again, might want to come up with a different function here
         return reward_given_rank
 

@@ -59,7 +59,7 @@ if __name__ == '__main__':
        
         print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=32, input_dims=env.observation_space.shape[0], epsilon_dec=0.9995, epsilon_end=0.05, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_rand.keras')
+        agent = Agent(alpha=0.001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=32, input_dims=env.observation_space.shape[0], epsilon_dec=0.9995, epsilon_end=0.05, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_win.keras')
         print("Agent created successfully")
 
         game_history = []
