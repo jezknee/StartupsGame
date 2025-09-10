@@ -90,7 +90,7 @@ class Agent(object):
             self.q_eval = keras.models.load_model(self.model_file)
         else:
             print("No saved model found. Building new model...")
-            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 256, 256)
+            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 128, 128)
 
     def remember(self, state, action, reward, new_state, done):
         self.memory.store_transition(state, action, reward, new_state, done)

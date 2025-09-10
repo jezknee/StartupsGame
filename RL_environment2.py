@@ -12,7 +12,7 @@ import numpy as np
 #import clear_output
 # used for clearing the display
 import os
-import startups_AI_game as sg
+import s1_game_optimise_for_RL as sg
 from enum import Enum
 
 class StartupsEnv(Env):
@@ -106,7 +106,7 @@ class StartupsEnv(Env):
         return self.state, reward, terminated, False, info
 
     def reset(self):
-        self.company_list, self.player_list, self.deck = sg.create_game(self.default_company_list, self.total_players, self.num_humans)
+        self.company_list, self.player_list, self.deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
         self.agent_player = self.random_RL_player_selection()
         self.state_controller = GameStateController(self.player_list, self.agent_player)
@@ -382,39 +382,6 @@ class StartupsEnv(Env):
         agent_player.putdown_strategy = None
         return agent_player
 
-        
-"""
-    def _handle_other_players(self, env):
-        Finished = False
-        while not Finished:
-            for p in self.player_list:
-                if p == self.agent_player:
-                    continue
-                pickup_action = sg.pickup_strategy(p, self.market, self.deck, self.player_list)
-                if pickup_action:
-                    sg.execute_pickup(p, pickup_action, self.market, self.deck)
-                putdown_action = sg.putdown_strategy(p, self.market, self.deck, self.player_list)
-                if putdown_action:
-                    sg.execute_putdown(p, putdown_action, self.player_list, self.market, self.company_list)
-            Finished = True
-        self.current_phase = TurnPhase.ROUND_COMPLETE
-
-    def _run_step(self):
-        if self.current_phase == TurnPhase.RL_PICKUP:
-            action = self.action_mapping[action_id]  # Predetermined by RL agent
-            #self.agent_player._take_action(self.market, self.deck, self.player_list)
-            self._change_phase()
-        elif self.current_phase == TurnPhase.RL_PUTDOWN:
-            action = self.action_mapping[action_id]  # Predetermined by RL agent
-            #self.agent_player._take_action(self.market, self.deck, self.player_list)
-            self._change_phase()
-        elif self.current_phase == TurnPhase.OTHER_PLAYERS:
-            self._handle_other_players()
-            #self._handle_other_players()
-        elif self.current_phase == TurnPhase.ROUND_COMPLETE:
-            self.game_round += 1
-            self.current_phase = TurnPhase.RL_PICKUP
-"""
     
 class TurnPhase(Enum):
     RL_PICKUP = "rl_pickup"
@@ -475,59 +442,3 @@ class GameStateController:
         elif self.current_phase == TurnPhase.OTHER_PLAYERS:
             self._advance_to_next_player()
         #print(f"New phase: {self.current_phase}, Hand size: {hand_size}")
-"""
-    def is_rl_agent_turn(self):
-        return self.current_phase in [TurnPhase.RL_PICKUP, TurnPhase.RL_PUTDOWN]
-            
-    def get_next_other_player(self):
-        if self.current_phase != TurnPhase.OTHER_PLAYERS:
-            return None
-            
-        other_players = [p for p in self.player_list if p != self.agent_player]
-        
-        if self.other_players_completed < len(other_players):
-            return other_players[self.other_players_completed]
-        else:
-            return None
-    
-    def advance_after_other_player_turn(self):
-        if self.current_phase == TurnPhase.OTHER_PLAYERS:
-            self.other_players_completed += 1
-            other_players = [p for p in self.player_list if p != self.agent_player]
-
-            if self.other_players_completed >= len(other_players):
-                # All other players finished
-                self.current_phase = TurnPhase.ROUND_COMPLETE
-    
-    def advance_to_next_round(self):
-        # error here - still assumes RL player goes first
-        # need len(player_list) to be done
-        if self.current_phase == TurnPhase.ROUND_COMPLETE:
-            self.round_number += 1
-            self.current_phase = TurnPhase.RL_PICKUP
-            self.other_players_completed = 0
-    
-    def should_execute_other_players(self):
-        return self.current_phase == TurnPhase.OTHER_PLAYERS
-    
-    def is_round_complete(self):
-        return self.current_phase == TurnPhase.ROUND_COMPLETE
-    def _terminate_game(self):
-"""
-"""
-class ActionMaskWrapper(gym.Wrapper):
-    def step(self, action_id):
-        mask = self.env._return_valid_actions(return_mask=True)
-
-        if mask[action_id] == 0:
-            # Invalid → resample uniformly from valid actions
-            valid_ids = np.where(mask == 1)[0]
-            action_id = np.random.choice(valid_ids)
-            invalid_action = True
-        else:
-            invalid_action = False
-
-        obs, reward, terminated, truncated, info = self.env.step(action_id)
-        info["invalid_action"] = invalid_action
-        return obs, reward, terminated, truncated, info
-"""
