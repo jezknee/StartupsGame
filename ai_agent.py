@@ -62,7 +62,7 @@ def build_dpqn(lr, n_actions, input_dims, fcl_dims, fc2_dims):
                 Activation('relu'),
                 Dense(n_actions)])
     
-    model.compile(optimizer=Adam(learning_rate=lr), loss='mse')  # Fixed: lr -> learning_rate
+    model.compile(optimizer=Adam(learning_rate=lr), loss='huber')  # Fixed: lr -> learning_rate
 
     return model
     # this will allow us to call model.fit and model.predict to allow training and choosing actions
@@ -81,6 +81,9 @@ class Agent(object):
         self.epsilon_min = epsilon_end
         self.batch_size = batch_size
         self.model_file = fname
+        self.learn_step_counter = 0
+        self.target_update_freq = 1000  # adjust as needed
+
 
         self.memory = ReplayBuffer(mem_size, input_dims, n_actions, discrete=True)
 
@@ -91,6 +94,9 @@ class Agent(object):
         else:
             print("No saved model found. Building new model...")
             self.q_eval = build_dpqn(alpha, n_actions, input_dims, 128, 128)
+        
+        self.q_target = build_dpqn(alpha, n_actions, input_dims, 128, 128)
+        self.q_target.set_weights(self.q_eval.get_weights())
 
     def remember(self, state, action, reward, new_state, done):
         self.memory.store_transition(state, action, reward, new_state, done)
@@ -127,7 +133,7 @@ class Agent(object):
         action_indices = np.dot(action, action_values)
 
         q_eval = self.q_eval.predict(state, verbose=0)
-        q_next = self.q_eval.predict(new_state, verbose=0)
+        q_next = self.q_target.predict(new_state, verbose=0)
 
         q_target = q_eval.copy()
         # address all states in your array, but can't just use array slicing, because the shape will be different for each batch size
@@ -145,6 +151,13 @@ class Agent(object):
         # calc value of next states
         # update q_targets
         # then use q_target as target for loss function of q network
+        self.learn_step_counter += 1
+        if self.learn_step_counter % self.target_update_freq == 0:
+            self.update_target_network()
+
+
+    def update_target_network(self):
+        self.q_target.set_weights(self.q_eval.get_weights())
 
     def save_model(self):
         self.q_eval.save(self.model_file)

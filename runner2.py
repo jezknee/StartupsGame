@@ -66,15 +66,16 @@ if __name__ == '__main__':
     
         #print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=0.9995, epsilon_end=0.05, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_bigtrain.keras')
+        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=0.9995, epsilon_end=0.05, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_modelqcheck2.keras')
         #print("Agent created successfully")
+        initial_weights = agent.q_eval.get_weights()[0].copy()
 
         game_history = []
         action_history = []
 
         scores = []
         eps_history = []
-        num_episodes = 10000
+        num_episodes = 50000
 
         for i in range(num_episodes):
             #print(f"Starting episode {i}")
@@ -154,7 +155,40 @@ if __name__ == '__main__':
             })
             eps_history.append(agent.epsilon)
             scores.append(score)
+            """
+            # collect states you saw in this episode
+            states = np.array(episode_states)   # assuming you track them in a list
+            if len(states) > 0:
+                # (optional) sample states to avoid too many
+                sampled_states = states if len(states) < 50 else np.array(random.sample(list(states), 50))
 
+                q_values = agent.q_eval.predict(sampled_states, verbose=0)
+                q_mean = float(np.mean(q_values))
+                q_max = float(np.max(q_values))
+                q_min = float(np.min(q_values))
+                q_std = float(np.std(q_values))
+            else:
+                q_mean = q_max = q_min = q_std = 0.0
+
+            # compute weight change magnitude if you're tracking that
+            weight_change = np.linalg.norm(np.subtract(
+                agent.q_eval.get_weights()[0].flatten(),
+                prev_weights[0].flatten()
+            )) if 'prev_weights' in locals() else 0.0
+            prev_weights = agent.q_eval.get_weights()
+            
+            # add to your game history log
+            game_history.append({
+                "episode": episode,
+                "weight_change": weight_change,
+                "q_min": q_min,
+                "q_max": q_max,
+                "q_std": q_std,
+                "epsilon": agent.epsilon,
+                "memory_counter": agent.memory.mem_cntr,
+                "reward": episode_reward   # if you're already tracking rewards
+            })
+            """
             avg_score = np.mean(scores[max(0, i-100):i+1])
             #print(f'episode {i}, score {score:.2f}, average score {avg_score:.2f}, epsilon {agent.epsilon:.3f}')
             
@@ -162,6 +196,16 @@ if __name__ == '__main__':
                 try:
                     agent.save_model()
                     #print(f"Model saved at episode {i}")
+
+                    current_weights = agent.q_eval.get_weights()[0]
+                    weight_change = np.mean(np.abs(current_weights - initial_weights))
+                    print(f"Episode {i}: Weight change magnitude: {weight_change:.6f}")
+                    
+                    # Check Q-values for a dummy state
+                    dummy_state = np.zeros((1, env.observation_space.shape[0]))
+                    q_values = agent.q_eval.predict(dummy_state, verbose=0)[0]
+                    print(f"Q-values: min={q_values.min():.3f}, max={q_values.max():.3f}, std={q_values.std():.3f}")
+                    print(f"Memory counter: {agent.memory.mem_cntr}, Epsilon: {agent.epsilon:.4f}")
                 except Exception as e:
                     pass
                     #print(f"Error saving model: {e}")
