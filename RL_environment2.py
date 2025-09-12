@@ -291,8 +291,7 @@ class StartupsEnv(Env):
     def _calculate_reward(self, player):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
-        #reward = self.more_cards_reward() - 0.01
-        reward = 0.001
+        reward = self.more_cards_reward() - 0.001
         #reward += self._get_coins_for_score() * 0.01
         return reward
         """
