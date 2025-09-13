@@ -69,7 +69,7 @@ def build_dpqn(lr, n_actions, input_dims, fcl_dims, fc2_dims):
     # this is very simple, even more so than PyTorch
 
 class Agent(object):
-    def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims, epsilon_dec=0.996, epsilon_end=0.01, mem_size=10000000, fname='dqn_model_bigtrain.keras'):
+    def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims, epsilon_dec, epsilon_end=0.01, mem_size=10000000, fname='dqn_model_4.keras'):
         # gamma is our discount factor, epsilon for explore / exploit
         # need to look up why you want epsilon to gradually decrease (maybe less exploring over time?)
         # epsilon doesn't become 0 in testing, as you always want some exploring
@@ -93,9 +93,9 @@ class Agent(object):
             self.q_eval = keras.models.load_model(self.model_file)
         else:
             print("No saved model found. Building new model...")
-            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 128, 128)
+            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 256,256)
         
-        self.q_target = build_dpqn(alpha, n_actions, input_dims, 128, 128)
+        self.q_target = build_dpqn(alpha, n_actions, input_dims, 256, 256)
         self.q_target.set_weights(self.q_eval.get_weights())
 
     def remember(self, state, action, reward, new_state, done):
@@ -144,7 +144,7 @@ class Agent(object):
         _ = self.q_eval.fit(state, q_target, verbose=0)
         # this passes batch of states through network, calculates, then compares to q_target (delta between where we are and where we want to be)
 
-        self.epsilon = self.epsilon*self.epsilon_dec if self.epsilon > self.epsilon_min else self.epsilon_min 
+        #self.epsilon = self.epsilon*self.epsilon_dec if self.epsilon > self.epsilon_min else self.epsilon_min 
         # and that is how we learn
         # sample your buffer (non-sequential memories, as correlations will slow down learning process)
         # back from one hot to integer

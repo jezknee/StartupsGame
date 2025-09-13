@@ -90,7 +90,7 @@ class StartupsEnv(Env):
             self._execute_other_players_turn()
 
         reward -= (g_round / 50 if g_round > 10 else 0)
-        reward += self._calculate_reward(self.agent_player)
+        reward += self._calculate_reward(self.agent_player,g_round)
         info = {"intermediate_reward": reward}
         
         terminated = len(self.deck) == 0        
@@ -116,8 +116,8 @@ class StartupsEnv(Env):
         self.game_round = 0
         return self.state, {"info": "Game reset"}
 
-    def reward_and_return(self):
-        reward += self._calculate_reward(self.agent_player)
+    def reward_and_return(self, g_round):
+        reward += self._calculate_reward(self.agent_player,g_round)
         info = {"intermediate_reward": reward}
         
         terminated = len(self.deck) == 0        
@@ -288,10 +288,10 @@ class StartupsEnv(Env):
             
         return valid_actions
 
-    def _calculate_reward(self, player):
+    def _calculate_reward(self, player, game_round):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
-        reward = self.more_cards_reward() - 0.001
+        reward = self.more_cards_reward(game_round) - 0.001
         #reward += self._get_coins_for_score() * 0.01
         return reward
         """
@@ -305,17 +305,29 @@ class StartupsEnv(Env):
         could compare with the avoid_loss_ai or random_ai
         """
 
-    def more_cards_reward(self):
+    def more_cards_reward(self,game_round):
         reward = 0
+        c_set = set()
         for card in self.agent_player._hand:
             company_name = card._company
             count_card_for_player = sg.count_card(self.agent_player, company_name)
-            for p in self.player_list:
-                shares_dict = sg.get_card_dictionary(p._shares)
-                if shares_dict.get(company_name, 0) > (count_card_for_player) and count_card_for_player > 0:
-                    reward -= 0.5
-                elif shares_dict.get(company_name, 0) < (count_card_for_player + 1) and shares_dict.get(company_name, 0) > 0:
-                    reward += 0.5
+            company_count = [company_name, count_card_for_player]
+            c_set.add(company_count)
+
+        for p in self.player_list:
+            shares_dict = sg.get_card_dictionary(p._shares)
+            for c in c_set:
+                if shares_dict.get(c[0], 0) > c[1] and c[1] > 0:
+                    reward -= (0.1 * c[1] + (game_round * 0.05))
+                elif shares_dict.get(c[0], 0) < c[1] and shares_dict.get(c[0], 0) > 0:
+                    reward += (0.2 * shares_dict.get(c[0], 0) + (game_round * 0.1))
+
+        for default_c in self.default_company_list:
+            for c in c_set:
+                if default_c == c[0]:
+                    if c[1] == int(default_c[1]):
+                        reward -= 0.05 * int(default_c[1])
+                        
         return reward
 
     def _execute_other_players_turn(self):
