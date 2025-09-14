@@ -46,6 +46,7 @@ def plotLearning(x, scores, eps_history, filename):
 
 learn_interval = 8  # Learn every 4 steps
 global_step_count = 0  # Track total steps across all episodes
+episode_count = 0
 
 #import cProfile, pstats
 
@@ -71,7 +72,7 @@ if __name__ == '__main__':
     
         #print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_13_09.keras')
+        agent = Agent(alpha=0.00005, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_14_09_early stop.keras')
         #print("Agent created successfully")
         initial_weights = agent.q_eval.get_weights()[0].copy()
 
@@ -85,6 +86,7 @@ if __name__ == '__main__':
             #print(f"Starting episode {i}")
             done = False
             score = 0
+            episode_count = 0
             episode_start_time = time.time()  # Add this line
             
             try:
@@ -121,10 +123,11 @@ if __name__ == '__main__':
                         score += reward
 
                         global_step_count += 1
+                        
                         if (global_step_count % learn_interval == 0 and 
                             agent.memory.mem_cntr > agent.batch_size):
                             agent.learn()
-
+                        
                         #print(f"Action {action}, Reward: {reward}, Score: {score}")
                         
                     else:
@@ -136,11 +139,15 @@ if __name__ == '__main__':
                         #print(f"Other players' turn, game state advanced")
 
                     step_count += 1
-                        
+
+                    
                 except Exception as e:
                     #print(f"Error during step {step_count} of episode {i}: {e}")
                     traceback.print_exc()
                     break
+
+            if done and (agent.memory.mem_cntr > agent.batch_size):
+                agent.learn() 
             
             if step_count >= max_steps:
                 pass
