@@ -65,6 +65,7 @@ class StartupsEnv(Env):
                 #print(f"Hand size before action: {len(self.agent_player._hand)}")
         
                 sg.execute_pickup(self.agent_player, action, self.market, self.deck)
+                reward += (self._calculate_reward(self.agent_player,g_round) *0.01)
                 #reward += 0.1
                 #print(f"Pickup executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
@@ -81,6 +82,7 @@ class StartupsEnv(Env):
                 #reward += 0.1
                 #print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
+                reward += self._calculate_reward(self.agent_player,g_round)
             except:
                 return self.state, -10, False, True, {"invalid_action": True}
         
@@ -89,8 +91,8 @@ class StartupsEnv(Env):
         while (self.state_controller.get_current_phase() == TurnPhase.OTHER_PLAYERS):
             self._execute_other_players_turn()
 
-        reward -= (g_round / 50 if g_round > 10 else 0)
-        reward += self._calculate_reward(self.agent_player,g_round)
+        #reward -= (g_round / 50 if g_round > 10 else 0)
+        #reward += self._calculate_reward(self.agent_player,g_round)
         info = {"intermediate_reward": reward}
         
         terminated = len(self.deck) == 0        
@@ -291,19 +293,10 @@ class StartupsEnv(Env):
     def _calculate_reward(self, player, game_round):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
-        reward = self.more_cards_reward(game_round) - 0.001
+        #reward = self.more_cards_reward(game_round) - 0.001
+        reward = 0.1 * (sg.simulate_end_game_and_score(self.player_list, self.company_list, self.agent_player) - self.agent_player._starting_coins) * game_round
         #reward += self._get_coins_for_score() * 0.01
         return reward
-        """
-        # Only reward getting coins
-        coin_change = player._coins - prev_coins
-        if coin_change > 0:
-            reward += coin_change * 0.1  # Gaining coins is always good
-            return -0.01
-
-        could add more rewards as training continues, e.g. add coin rewards later
-        could compare with the avoid_loss_ai or random_ai
-        """
 
     def more_cards_reward(self,game_round):
         reward = 0
@@ -338,6 +331,7 @@ class StartupsEnv(Env):
                         reward -= 0.05 * int(default_c[1])
                         
         return reward
+
 
     def _execute_other_players_turn(self):
         """Execute one other player's turn and advance the game state"""
