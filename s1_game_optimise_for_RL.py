@@ -775,6 +775,8 @@ def end_game_and_score(player_list, company_list):
     
     winner = find_winner_simple(player_list)
 
+
+
         
 if __name__ == "__main__":
     #create_game(company_list, 4, 1)

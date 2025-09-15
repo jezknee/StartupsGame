@@ -82,7 +82,7 @@ class Agent(object):
         self.batch_size = batch_size
         self.model_file = fname
         self.learn_step_counter = 0
-        self.target_update_freq = 10000  # adjust as needed (5000 medium, 10000 high, 1000 low)
+        self.target_update_freq = 5000  # adjust as needed (5000 medium, 10000 high, 1000 low)
 
 
         self.memory = ReplayBuffer(mem_size, input_dims, n_actions, discrete=True)
@@ -93,7 +93,7 @@ class Agent(object):
             self.q_eval = keras.models.load_model(self.model_file)
         else:
             print("No saved model found. Building new model...")
-            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 256,256)
+            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 256,256) # 128?
         
         self.q_target = build_dpqn(alpha, n_actions, input_dims, 256, 256)
         self.q_target.set_weights(self.q_eval.get_weights())

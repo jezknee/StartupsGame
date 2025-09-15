@@ -308,18 +308,28 @@ class StartupsEnv(Env):
     def more_cards_reward(self,game_round):
         reward = 0
         c_dict = dict()
+        highest_shares = dict()
+        for comp in self.default_company_list:
+            company = comp[0]
+            highest_shares[company] = 0
+            c_dict[company] = 0
+            for p in self.player_list:
+                shares_dict = sg.get_card_dictionary(p._shares)
+                if shares_dict.get(company, 0) > highest_shares.get(company, 0) and p != self.agent_player:
+                    highest_shares[company] = shares_dict[company]
+
         for card in self.agent_player._hand:
             company_name = card._company
             count_card_for_player = sg.count_card(self.agent_player, company_name)
             c_dict[company_name] = int(count_card_for_player)
 
-        for p in self.player_list:
-            shares_dict = sg.get_card_dictionary(p._shares)
-            for key, value in c_dict.items():
-                if shares_dict.get(key, 0) > value and value > 0:
-                    reward -= (0.1 * value + (game_round * 0.05))
-                elif shares_dict.get(key, 0) < value and shares_dict.get(key, 0) > 0:
-                    reward += (0.2 * shares_dict.get(key, 0) + (game_round * 0.1))
+        for key, value in c_dict.items():
+            if highest_shares.get(key, 0) > value and value > 0:
+                reward -= (0.1 * value + (game_round * 0.1))
+            elif highest_shares.get(key, 0) == (value - 1) and highest_shares.get(key, 0) > 0:
+                reward += (0.1 * highest_shares.get(key, 0) + (game_round * 0.1))
+            elif highest_shares.get(key, 0) == (value - 2) and highest_shares.get(key, 0) > 0:
+                reward += (0.02 * highest_shares.get(key, 0) + (game_round * 0.2))
 
         for default_c in self.default_company_list:
             for key, value in c_dict.items():
