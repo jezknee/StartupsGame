@@ -24,6 +24,7 @@ class StartupsEnv(Env):
         self.default_company_list = default_company_list
         self.company_list, self.player_list, self.deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
         self.agent_player = self.random_RL_player_selection()
+        self.other_players = [p for p in self.player_list if p != self.agent_player]
         self.market = []
         self.state_controller = GameStateController(self.player_list, self.agent_player)
         self._setup_action_space() 
@@ -81,8 +82,9 @@ class StartupsEnv(Env):
                 sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
                 #reward += 0.1
                 #print(f"Putdown executed. New hand size: {len(self.agent_player._hand)}")
-                stop = True
                 reward += self._calculate_reward(self.agent_player,g_round)
+                stop = True
+                
             except:
                 return self.state, -10, False, True, {"invalid_action": True}
         
@@ -110,12 +112,13 @@ class StartupsEnv(Env):
     def reset(self):
         self.company_list, self.player_list, self.deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
+        self.game_round = 0
         self.agent_player = self.random_RL_player_selection()
+        self.other_players = [p for p in self.player_list if p != self.agent_player]
         self.state_controller = GameStateController(self.player_list, self.agent_player)
         self._setup_action_space() 
         self.state = self._get_observation()
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self._get_observation().shape[0],), dtype=np.float32)
-        self.game_round = 0
         return self.state, {"info": "Game reset"}
 
     def reward_and_return(self, g_round):
@@ -136,6 +139,7 @@ class StartupsEnv(Env):
 
     def _get_observation(self):
         player = self.agent_player
+        other_players = [p for p in self.player_list if p != self.agent_player]
         # player_coins
         player_coins = player._coins
         # player_hand
@@ -149,16 +153,18 @@ class StartupsEnv(Env):
         # market card coins
         market_card_coins = [card._coins_on for card in market_cards]
         # other player shares
-        other_player_shares = [player._shares for player in self.player_list[1:]]
+        other_player_shares = [player._shares for player in self.other_players]
         # other player coins
-        other_player_coins = [player._coins for player in self.player_list[1:]]
+        other_player_coins = [player._coins for player in self.other_players]
         # other player chips
-        other_player_chips = [player._chips for player in self.player_list[1:]]
+        other_player_chips = [player._chips for player in self.other_players]
+        # other player hand - REMOVE LATER
+        #ther_player_hand = [player._hand for player in self.other_players]
         # game phase
         #game_phase = self.state_controller.get_current_phase()
 
-        # Convert to RL-friendly format
-        return self._convert_to_numeric_observation(player_coins, player_hand, player_shares, player_chips, market_cards, market_card_coins, other_player_shares, other_player_coins, other_player_chips)
+        # Convert to RL-friendly format - other_player_handREMOVE LATER
+        return self._convert_to_numeric_observation(player_coins, player_hand, player_shares, player_chips, market_cards, market_card_coins, other_player_shares, other_player_coins, other_player_chips) # , other_player_hand
 
     def _convert_to_numeric_observation(self, player_coins, player_hand, player_shares, player_chips, market_cards, market_card_coins, other_player_shares, other_player_coins, other_player_chips):
         obs = []
@@ -191,7 +197,7 @@ class StartupsEnv(Env):
             obs.append(float(max_coins))
         
         # Other players (same pattern for each)
-        for other_player in self.player_list[1:]:
+        for other_player in self.other_players:
             obs.append(float(other_player._coins))
             
             other_shares = sg.get_card_dictionary(other_player._shares)
@@ -201,6 +207,11 @@ class StartupsEnv(Env):
             other_chips = sg.get_company_set(other_player)
             for company in self.company_list:
                 obs.append(1.0 if company._name in other_chips else 0.0)
+            
+            # REMOVE LATER in training, this should be hidden
+           #other_hand = sg.get_card_dictionary(other_player._hand)
+           #for company in self.company_list:
+                #bs.append(float(other_hand.get(company._name, 0)))
         
         obs.append(float(self.state_controller._enumerate_phase()))
 

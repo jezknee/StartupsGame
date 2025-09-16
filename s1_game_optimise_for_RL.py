@@ -790,38 +790,35 @@ def end_game_and_score(player_list, company_list):
     winner = find_winner_simple(player_list)
 
 def simulate_end_game_and_score(player_list, company_list, player):
-    simulate_empty_hands(player_list)
+    #simulate_empty_hands(player_list)
     for p in player_list:
         p._simulate_coins = p._coins
     
     for company in company_list:
         majority_shareholder = company.get_majority_holder(player_list)
         if majority_shareholder is not None:
-            total_coins = 0
+            simulate_total_coins = 0
             
             for p in player_list:
                 if p != majority_shareholder:
                     player_shares_dict = get_card_dictionary(p._shares)
                     if company._name in player_shares_dict:  # Check if company exists in player's shares
                         coins = player_shares_dict[company._name]  # Use company._name, not company_name
-                        p.simulate_coins -= coins
+                        p._simulate_coins -= coins
                         simulate_total_coins += coins
             
             # Give 3x the collected coins to majority shareholder
             simulate_total_coins = simulate_total_coins * 3
-            majority_shareholder.simulate_coins += total_coins
+            majority_shareholder._simulate_coins += simulate_total_coins
         else:
             pass
 
+    return player._simulate_coins #, win_value
     
     #winner = max(player_list, key=lambda player: player.simulate_coins)
     #win_value = 0
     #if player == winner:
     #    win_value = 0.1
-
-    return player._simulate_coins #, win_value
-
-
         
 if __name__ == "__main__":
     #create_game(company_list, 4, 1)
