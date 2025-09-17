@@ -266,16 +266,35 @@ def deal_hands(deck, cutoff, player_list):
         counter += 1
 
 def simulate_deal_hands(start_deck, cutoff, player_list, skip_player):
-    sim_deck = start_deck.copy.deepcopy()
+    sim_deck = copy.deepcopy(start_deck)
     counter = 0
+
+    known_cards = []
+    known_cards.extend(skip_player._hand)  # RL agent knows their own hand
+    for p in player_list:
+        known_cards.extend(p._shares)  # All shares are visible
+    
+    # Remove known cards from deck
+    remaining_deck = []
+    for card in sim_deck:
+        card_found = False
+        for known_card in known_cards:
+            if card._company == known_card._company:
+                card_found = True
+                break
+        if not card_found:
+            remaining_deck.append(card)
+    
+    random.shuffle(remaining_deck)
+
     for p in player_list:
         p._sim_hand = []
 
     while counter < cutoff:
         for p in player_list:
-            if player != skip_player:
-                p._sim_hand.append(sim_deck[0])
-            del sim_deck[0]
+            if player != skip_player and len(remaining_deck) > 0:
+                p._sim_hand.append(remaining_deck[0])
+            del remaining_deck[0]
         counter += 1
 
 def company_in_market(market, company_name):
@@ -552,10 +571,10 @@ def create_game_RL(default_companies, no_players, no_humans):
     company_list = create_companies(default_companies)
     player_list = create_players_RL(no_players, no_humans)
     deck = create_deck(company_list)
-    starting_deck = deck.copy.deepcopy()
+    starting_deck = copy.deepcopy(deck)
     deck = prepare_deck(deck, 5)
     deal_hands(deck, 3, player_list)
-    return company_list, player_list, deck
+    return company_list, player_list, deck, starting_deck
 
 def empty_hands(player_list):
     for player in player_list:
@@ -971,15 +990,15 @@ def simulate_end_game_and_score(player_list, company_list, player):
     # could estimate average value per card, then remove three cards with average closest to zero
 
     winner = max(player_list, key=lambda player: player._simulate_coins)
-    average_coins = sum(player_list, key=lambda player: player._simulate_coins) / len(player_list)
+    average_coins = sum(p._simulate_coins for p in player_list) / len(player_list)
     distance_from_average = player._simulate_coins - average_coins
-    #average_coins = (player_list, key=lambda player: player._simulate_coins)
+
     win_value = 0
     if player == winner:
         win_value = 0.25
 
     return player._simulate_coins + distance_from_average + win_value
-    
+    """
     def expected_gain_per_suit(player_list, company_list, player):
         for company in company_list:
             majority_shareholder = company.get_majority_holder(player_list)
@@ -995,7 +1014,7 @@ def simulate_end_game_and_score(player_list, company_list, player):
                             coins = player_shares_dict[company._name]  # Use company._name, not company_name
                             p._simulate_coins -= coins
                             simulate_total_coins += coins
-    
+    """
 
         
 if __name__ == "__main__":

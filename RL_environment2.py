@@ -22,7 +22,7 @@ class StartupsEnv(Env):
         self.num_humans = num_humans
         self.game_round = 0
         self.default_company_list = default_company_list
-        self.company_list, self.player_list, self.deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
+        self.company_list, self.player_list, self.deck, self.starting_deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
         self.agent_player = self.random_RL_player_selection()
         self.other_players = [p for p in self.player_list if p != self.agent_player]
         self.market = []
@@ -110,7 +110,7 @@ class StartupsEnv(Env):
         return self.state, reward, terminated, False, info
 
     def reset(self):
-        self.company_list, self.player_list, self.deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
+        self.company_list, self.player_list, self.deck, self.starting_deck = sg.create_game_RL(self.default_company_list, self.total_players, self.num_humans)
         self.market = []
         self.game_round = 0
         self.agent_player = self.random_RL_player_selection()
@@ -467,7 +467,7 @@ class GameStateController:
         elif self.current_phase == TurnPhase.OTHER_PLAYERS:
             self._advance_to_next_player()
         #print(f"New phase: {self.current_phase}, Hand size: {hand_size}")
-        
+
 """
 def trained_agent_pickup_strategy(player, market, deck, player_list, trained_agent):
     #Use trained RL agent for pickup decisions
