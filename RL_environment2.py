@@ -305,7 +305,7 @@ class StartupsEnv(Env):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
         #reward = self.more_cards_reward(game_round) - 0.001
-        reward = (sg.simulate_end_game_and_score(self.player_list, self.company_list, self.agent_player) - self.agent_player._starting_coins)
+        reward = (sg.simulate_end_game_and_score(self.player_list, self.company_list, self.agent_player, self.starting_deck) - self.agent_player._starting_coins)
         #reward += self._get_coins_for_score() * 0.01
         return reward
 
