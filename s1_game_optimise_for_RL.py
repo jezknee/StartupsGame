@@ -117,7 +117,7 @@ class Player:
             self.add_card_to_shares(card)
     def simulate_put_hand_in_shares(self):
         hand_copy = self._hand.copy()
-        self._simulate_shares = self._shares
+        self._simulate_shares = self._shares.copy()
         for card in hand_copy:
             self.simulate_add_card_to_shares(card)
     def __str__(self):
@@ -208,12 +208,14 @@ def create_players_RL(no_players, no_humans):
     n = 1
     humans_created = 0
     #assign_RL_strategy_to = random.choice([1,4])
-    assign_avoid_loss_strategy_to = 9 #random.choice([1,4])
+    assign_avoid_loss_strategy_to = random.choice([0,6])
     assign_avoid_loss_strategy_to_2 = 9 #random.choice([1,4])
     assign_avoid_loss_strategy_to_3 = 9 #random.choice([1,4])
     #assign_avoid_loss_strategy_to_4 = 9 #random.choice([1,4])
-    assign_gain_money_strategy_to_1 = 9 #random.choice([1,4])
+    assign_gain_money_strategy_to_1 = random.choice([0,6])
     #assign_gain_money_strategy_to_2 = random.choice([1,4])
+    assign_seek_loss_strategy_to_1 = random.choice([0,4]) #random.choice(range(len(player_list)))
+    assign_same_cards_strategy_to_1 = random.choice([0,4]) #random.choice(range(len(player_list)))
     while n <= no_players:
         if humans_created < no_humans:
             player = Player(n, 10, [], [], set(), True)
@@ -228,6 +230,12 @@ def create_players_RL(no_players, no_humans):
             elif n == assign_gain_money_strategy_to_1:
                 player.pickup_strategy = gain_money_ai_pickup_strategy
                 player.putdown_strategy = lose_unwanted_cards_ai_putdown_strategy
+            elif n == assign_seek_loss_strategy_to_1:
+                player.pickup_strategy = seek_loss_ai_pickup_strategy
+                player.putdown_strategy = seek_loss_ai_putdown_strategy
+            elif n == assign_same_cards_strategy_to_1:
+                player.pickup_strategy = same_cards_ai_pickup_strategy
+                player.putdown_strategy = same_cards_ai_putdown_strategy
             else:
                 player.pickup_strategy = random_ai_pickup_strategy
                 player.putdown_strategy = random_ai_putdown_strategy
@@ -685,6 +693,112 @@ def avoid_loss_ai_putdown_strategy(player, market, deck, player_list):
 
     return choice
 
+def seek_loss_ai_pickup_strategy(player, market, deck, player_list):
+    choices = return_all_pickup_choices(player, market)
+    good_choices = []
+    bad_choices = []
+    for c in choices:
+        #if c.target is None:
+        #    continue
+        if c.type == "pickup_deck":
+            bad_choices.append(c)
+        if c.type == "pickup_market" and c.target is not None:
+            company_name = c.target
+            count_card_for_player = count_card(player, company_name)
+            for p in player_list:
+                shares_dict = get_card_dictionary(p._shares)
+                if shares_dict.get(company_name, 0) > (count_card_for_player + 1):
+                    good_choices.append(c)
+                else:
+                    bad_choices.append(c)
+
+    if len(good_choices) == 0:
+        good_choices = bad_choices
+
+    choice = random.choice(good_choices)
+
+    return choice
+
+def seek_loss_ai_putdown_strategy(player, market, deck, player_list):
+    choices = return_all_putdown_choices(player, market)
+
+    good_choices = []
+    bad_choices = []
+    for c in choices:
+        company_name = c.target
+        count_card_for_player = count_card(player, company_name)
+        for p in player_list:
+            shares_dict = get_card_dictionary(p._shares)
+            if c.type == "putdown_market":
+                if shares_dict.get(company_name, 0) == count_card_for_player - 1 and shares_dict.get(company_name, 0) > 0:
+                    good_choices.append(c)
+                else:
+                    bad_choices.append(c)
+            elif c.type == "putdown_shares":
+                if shares_dict.get(company_name, 0) >= count_card_for_player:
+                    good_choices.append(c)
+                else:
+                    bad_choices.append(c)
+            else:
+                bad_choices.append(c)
+
+    if len(good_choices) == 0:
+        good_choices = bad_choices
+    
+    choice = random.choice(good_choices)
+
+    return choice
+
+def same_cards_ai_pickup_strategy(player, market, deck, player_list):
+    choices = return_all_pickup_choices(player, market)
+    good_choices = []
+    bad_choices = []
+    for c in choices:
+        #if c.target is None:
+        #    continue
+        if c.type == "pickup_deck":
+            bad_choices.append(c)
+        if c.type == "pickup_market" and c.target is not None:
+            company_name = c.target
+            count_card_for_player = count_card(player, company_name)
+            if count_card_for_player > 0:
+                good_choices.append(c)
+            else:
+                bad_choices.append(c)
+
+    if len(good_choices) == 0:
+        good_choices = bad_choices
+
+    choice = random.choice(good_choices)
+
+    return choice
+
+def same_cards_ai_putdown_strategy(player, market, deck, player_list):
+    choices = return_all_putdown_choices(player, market)
+
+    good_choices = []
+    bad_choices = []
+    ok_choices = []
+    for c in choices:
+        company_name = c.target
+        count_card_for_player = count_card(player, company_name)
+        if count_card_for_player > 0:
+            if c.type == "putdown_market":
+                bad_choices.append(c)
+            elif c.type == "putdown_shares":
+                good_choices.append(c)
+        else:
+            ok_choices.append(c)
+
+    if len(good_choices) == 0 and len(ok_choices) != 0:
+        good_choices = ok_choices
+    elif len(good_choices) == 0 and len(ok_choices) == 0:
+        good_choices = bad_choices
+    
+    choice = random.choice(good_choices)
+
+    return choice
+
 def gain_money_ai_pickup_strategy(player, market, deck, player_list):
     choices = return_all_pickup_choices(player, market)
 
@@ -813,12 +927,14 @@ def simulate_end_game_and_score(player_list, company_list, player):
         else:
             pass
 
-    return player._simulate_coins #, win_value
+    winner = max(player_list, key=lambda player: player._simulate_coins)
+    win_value = 0
+    if player == winner:
+        win_value = 0.25
+
+    return player._simulate_coins + win_value
     
-    #winner = max(player_list, key=lambda player: player.simulate_coins)
-    #win_value = 0
-    #if player == winner:
-    #    win_value = 0.1
+
         
 if __name__ == "__main__":
     #create_game(company_list, 4, 1)

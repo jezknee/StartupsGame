@@ -66,18 +66,18 @@ class StartupsEnv(Env):
                 #print(f"Hand size before action: {len(self.agent_player._hand)}")
         
                 sg.execute_pickup(self.agent_player, action, self.market, self.deck)
-                reward += (self._calculate_reward(self.agent_player,g_round) *0.01)
+                reward += self._calculate_reward(self.agent_player,g_round)
                 #reward += 0.1
                 #print(f"Pickup executed. New hand size: {len(self.agent_player._hand)}")
                 stop = True
             except:
                 #print(f"Error executing pickup: {e}")
-                return self.state, -10, False, True, {"invalid_action": True}
+                return self.state, -1, False, True, {"invalid_action": True}
                 
         elif self.state_controller.get_current_phase() == TurnPhase.RL_PUTDOWN and stop == False:
             if not self._return_valid_action_check(action):
                 #print(f"Invalid putdown action attempted: {action}")
-                return self.state, reward-10, False, True, {"invalid_action": True}
+                return self.state, reward-1, False, True, {"invalid_action": True}
             try:
                 sg.execute_putdown(self.agent_player, action, self.player_list, self.market, self.company_list)
                 #reward += 0.1
@@ -86,7 +86,7 @@ class StartupsEnv(Env):
                 stop = True
                 
             except:
-                return self.state, -10, False, True, {"invalid_action": True}
+                return self.state, -1, False, True, {"invalid_action": True}
         
         # After RL agent's turn, execute remaining other players if needed
         self.state_controller._change_phase()
@@ -139,25 +139,25 @@ class StartupsEnv(Env):
 
     def _get_observation(self):
         player = self.agent_player
-        other_players = [p for p in self.player_list if p != self.agent_player]
+        self.other_players = [p for p in self.player_list if p != self.agent_player]
         # player_coins
         player_coins = player._coins
         # player_hand
-        player_hand = player._hand # might want to include card values?
+        player_hand = list(player._hand) # might want to include card values?
         # player_shares
-        player_shares = player._shares
+        player_shares = list(player._shares)
         # player chips
-        player_chips = player._chips
+        player_chips = set(player._chips)
         #market cards
-        market_cards = self.market
+        market_cards = list(self.market)
         # market card coins
         market_card_coins = [card._coins_on for card in market_cards]
         # other player shares
-        other_player_shares = [player._shares for player in self.other_players]
+        other_player_shares = [list(player._shares) for player in self.other_players]
         # other player coins
         other_player_coins = [player._coins for player in self.other_players]
         # other player chips
-        other_player_chips = [player._chips for player in self.other_players]
+        other_player_chips = [list(player._chips) for player in self.other_players]
         # other player hand - REMOVE LATER
         #ther_player_hand = [player._hand for player in self.other_players]
         # game phase
@@ -305,7 +305,7 @@ class StartupsEnv(Env):
         # placeholder - just a sparse reward for now
         # this will be slower, but I don't want to impose strategies
         #reward = self.more_cards_reward(game_round) - 0.001
-        reward = 0.1 * (sg.simulate_end_game_and_score(self.player_list, self.company_list, self.agent_player) - self.agent_player._starting_coins) * game_round
+        reward = (sg.simulate_end_game_and_score(self.player_list, self.company_list, self.agent_player) - self.agent_player._starting_coins)
         #reward += self._get_coins_for_score() * 0.01
         return reward
 
@@ -333,7 +333,7 @@ class StartupsEnv(Env):
             elif highest_shares.get(key, 0) == (value - 1) and highest_shares.get(key, 0) > 0:
                 reward += (0.1 * highest_shares.get(key, 0) + (game_round * 0.1))
             elif highest_shares.get(key, 0) == (value - 2) and highest_shares.get(key, 0) > 0:
-                reward += (0.02 * highest_shares.get(key, 0) + (game_round * 0.2))
+                reward += (0.05 * highest_shares.get(key, 0) + (game_round * 0.2))
 
         for default_c in self.default_company_list:
             for key, value in c_dict.items():
@@ -382,13 +382,13 @@ class StartupsEnv(Env):
 
     def _calculate_final_reward(self):
         rl_rank = self._calculate_player_rank() # 0 is best
-        reward_for_winning = 100
+        reward_for_winning = 10
         if rl_rank == 0:
-            reward_given_rank = reward_for_winning + self.agent_player._coins
-        elif rl_rank == len(self.player_list) - 1:
-            reward_given_rank = -5
+            reward_given_rank = reward_for_winning + 0.1 * self.agent_player._coins
+        #elif rl_rank == len(self.player_list) - 1:
+        #    reward_given_rank = -5 + 0.1 * self.agent_player._coins
         else:
-            reward_given_rank = 0
+            reward_given_rank = 0 + 0.1 * self.agent_player._coins
         #total_players = len(self.player_list)
         #reward_given_rank = (reward_for_winning / (2**rl_rank)) + (self.agent_player._coins / total_players)
         # again, might want to come up with a different function here
@@ -467,3 +467,82 @@ class GameStateController:
         elif self.current_phase == TurnPhase.OTHER_PLAYERS:
             self._advance_to_next_player()
         #print(f"New phase: {self.current_phase}, Hand size: {hand_size}")
+        
+"""
+def trained_agent_pickup_strategy(player, market, deck, player_list, trained_agent):
+    #Use trained RL agent for pickup decisions
+    # Create temporary environment to get state
+    temp_env = StartupsEnv(len(player_list), 0, sg.default_companies)
+    temp_env.player_list = player_list
+    temp_env.market = market
+    temp_env.deck = deck
+    temp_env.agent_player = player
+    temp_env.state_controller.current_phase = TurnPhase.RL_PICKUP
+    
+    # Get state and valid actions
+    state = temp_env._get_observation()
+    valid_actions = temp_env.get_valid_actions(state)
+    
+    if not valid_actions:
+        return None
+    
+    # Get action from trained agent (no exploration)
+    action_id = trained_agent.predict(state, valid_actions, deterministic=True)
+    
+    # Return the actual action
+    return temp_env.action_mapping[action_id]
+
+def trained_agent_putdown_strategy(player, market, deck, player_list, trained_agent):
+    #Use trained RL agent for putdown decisions
+    # Create temporary environment to get state
+    temp_env = StartupsEnv(len(player_list), 0, sg.default_companies)
+    temp_env.player_list = player_list
+    temp_env.market = market
+    temp_env.deck = deck
+    temp_env.agent_player = player
+    temp_env.state_controller.current_phase = TurnPhase.RL_PUTDOWN
+    
+    # Get state and valid actions
+    state = temp_env._get_observation()
+    valid_actions = temp_env.get_valid_actions(state)
+    
+    if not valid_actions:
+        return None
+    
+    # Get action from trained agent (no exploration)
+    action_id = trained_agent.predict(state, valid_actions, deterministic=True)
+    
+    # Return the actual action
+    return temp_env.action_mapping[action_id]
+"""
+# Then in your create_players_RL function, just add this option:
+"""
+def create_players_with_static_opponent(no_players, no_humans, trained_agent=None):
+    #Modified player creation that can use a trained agent as one player
+    player_list = []
+    n = 1
+    humans_created = 0
+    assign_trained_agent_to = random.choice(range(2, no_players + 1)) if trained_agent else None
+    
+    while n <= no_players:
+        if humans_created < no_humans:
+            player = Player(n, 10, [], [], set(), True)
+            player.pickup_strategy = human_pickup_strategy
+            player.putdown_strategy = human_putdown_strategy
+            humans_created += 1
+        elif n == assign_trained_agent_to and trained_agent is not None:
+            # This player uses the trained agent
+            player = Player(n, 10, [], [], set(), False)
+            player.pickup_strategy = lambda p, m, d, pl: trained_agent_pickup_strategy(p, m, d, pl, trained_agent)
+            player.putdown_strategy = lambda p, m, d, pl: trained_agent_putdown_strategy(p, m, d, pl, trained_agent)
+        else:
+            # Regular AI player
+            player = Player(n, 10, [], [], set(), False)
+            player.pickup_strategy = random_ai_pickup_strategy
+            player.putdown_strategy = random_ai_putdown_strategy
+        
+        player_list.append(player)
+        n += 1
+    
+    return player_list
+"""

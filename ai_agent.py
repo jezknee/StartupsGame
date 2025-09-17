@@ -93,9 +93,9 @@ class Agent(object):
             self.q_eval = keras.models.load_model(self.model_file)
         else:
             print("No saved model found. Building new model...")
-            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 256,256) # 128?
+            self.q_eval = build_dpqn(alpha, n_actions, input_dims, 128,128) # 128?
         
-        self.q_target = build_dpqn(alpha, n_actions, input_dims, 256, 256)
+        self.q_target = build_dpqn(alpha, n_actions, input_dims, 128, 128)
         self.q_target.set_weights(self.q_eval.get_weights())
 
     def remember(self, state, action, reward, new_state, done):
