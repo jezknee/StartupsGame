@@ -46,6 +46,7 @@ class Player:
         self._simulate_shares = shares
         self._chips = chips
         self._human = human
+        self._sim_hand = []
         self._last_pickup = None
     def take_card_from_pile(self, deck):
         self._hand.append(deck[0])
@@ -117,6 +118,11 @@ class Player:
             self.add_card_to_shares(card)
     def simulate_put_hand_in_shares(self):
         hand_copy = self._hand.copy()
+        self._simulate_shares = self._shares.copy()
+        for card in hand_copy:
+            self.simulate_add_card_to_shares(card)
+    def simulate_put_sim_hand_in_shares(self):
+        hand_copy = self._sim_hand.copy()
         self._simulate_shares = self._shares.copy()
         for card in hand_copy:
             self.simulate_add_card_to_shares(card)
@@ -257,6 +263,19 @@ def deal_hands(deck, cutoff, player_list):
         for p in player_list:
             p._hand.append(deck[0])
             del deck[0]
+        counter += 1
+
+def simulate_deal_hands(start_deck, cutoff, player_list, skip_player):
+    sim_deck = start_deck.copy.deepcopy()
+    counter = 0
+    for p in player_list:
+        p._sim_hand = []
+
+    while counter < cutoff:
+        for p in player_list:
+            if player != skip_player:
+                p._sim_hand.append(sim_deck[0])
+            del sim_deck[0]
         counter += 1
 
 def company_in_market(market, company_name):
@@ -533,6 +552,7 @@ def create_game_RL(default_companies, no_players, no_humans):
     company_list = create_companies(default_companies)
     player_list = create_players_RL(no_players, no_humans)
     deck = create_deck(company_list)
+    starting_deck = deck.copy.deepcopy()
     deck = prepare_deck(deck, 5)
     deal_hands(deck, 3, player_list)
     return company_list, player_list, deck
@@ -544,6 +564,26 @@ def empty_hands(player_list):
 def simulate_empty_hands(player_list):
     for player in player_list:
         player.simulate_put_hand_in_shares()
+
+def simulate_empty_sim_hands(player_list):
+    for player in player_list:
+        player.simulate_put_sim_hand_in_shares()
+
+"""
+def get_all_visible_cards(player, player_list, starting_deck):
+    all_visible_cards = dict()
+    starting_dict = get_card_dictionary(starting_deck)
+    for p in player_list:
+        for c in p._shares:
+            all_visible_cards.append(c)
+
+    count_card_in_shares = 0
+    count_card_in_hand = 0
+    for s in player._shares:
+        if s._company == company:
+            count_card_in_shares += 1
+"""
+
 
 def find_winner_simple(player_list):
     """Find the player with the most coins"""
@@ -905,6 +945,8 @@ def end_game_and_score(player_list, company_list):
 
 def simulate_end_game_and_score(player_list, company_list, player):
     #simulate_empty_hands(player_list)
+    simulate_deal_hands(starting_deck, 3, player_list, player)
+    simulate_empty_sim_hands(player_list)
     for p in player_list:
         p._simulate_coins = p._coins
     
@@ -926,13 +968,33 @@ def simulate_end_game_and_score(player_list, company_list, player):
             majority_shareholder._simulate_coins += simulate_total_coins
         else:
             pass
+    # could estimate average value per card, then remove three cards with average closest to zero
 
     winner = max(player_list, key=lambda player: player._simulate_coins)
+    average_coins = sum(player_list, key=lambda player: player._simulate_coins) / len(player_list)
+    distance_from_average = player._simulate_coins - average_coins
+    #average_coins = (player_list, key=lambda player: player._simulate_coins)
     win_value = 0
     if player == winner:
         win_value = 0.25
 
-    return player._simulate_coins + win_value
+    return player._simulate_coins + distance_from_average + win_value
+    
+    def expected_gain_per_suit(player_list, company_list, player):
+        for company in company_list:
+            majority_shareholder = company.get_majority_holder(player_list)
+            if majority_shareholder is None:
+                gain_total_coins = 0
+            elif majority_shareholder is not None:
+                gain_total_coins = 0
+                
+                for p in player_list:
+                    if p != majority_shareholder:
+                        player_shares_dict = get_card_dictionary(p._shares)
+                        if company._name in player_shares_dict:  # Check if company exists in player's shares
+                            coins = player_shares_dict[company._name]  # Use company._name, not company_name
+                            p._simulate_coins -= coins
+                            simulate_total_coins += coins
     
 
         
