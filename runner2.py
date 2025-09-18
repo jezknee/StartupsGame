@@ -72,7 +72,7 @@ if __name__ == '__main__':
     
         #print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_37.keras')
+        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_38.keras')
         #print("Agent created successfully")
         initial_weights = agent.q_eval.get_weights()[0].copy()
 

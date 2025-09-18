@@ -1049,7 +1049,9 @@ def lose_unwanted_cards_ai_putdown_strategy(player, market, deck, player_list):
 
 STRATEGIES = {
     "random": (random_ai_pickup_strategy, random_ai_putdown_strategy),
+    "random_2": (random_ai_pickup_strategy, random_ai_putdown_strategy),
     "avoid_loss": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
+    "avoid_loss_2": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
     "seek_loss": (seek_loss_ai_pickup_strategy, seek_loss_ai_putdown_strategy),
     "same_cards": (same_cards_ai_pickup_strategy, same_cards_ai_putdown_strategy),
     "different_cards": (different_cards_ai_pickup_strategy, different_cards_ai_putdown_strategy),
