@@ -65,6 +65,7 @@ class Player:
         self._simulate_shares = shares
         self._chips = chips
         self._human = human
+        self.static_agent = None
         self._sim_hand = []
         self._last_pickup = None
     def take_card_from_pile(self, deck):
@@ -298,6 +299,54 @@ def create_players_RL(no_players, no_humans):
     for i, ai in enumerate(chosen_ai, start=no_humans + 1):
         ai._number = i
         player_list.append(ai)
+    
+    return player_list
+
+# Modified game creation function
+def create_game_RL_with_static(default_companies, no_players, no_humans, static_agents, num_static_agents):
+    """Create game with static agents efficiently integrated"""
+    company_list = create_companies(default_companies)
+    player_list = create_players_RL_with_static(no_players, no_humans, static_agents, num_static_agents)
+    deck = create_deck(company_list)
+    starting_deck = copy.deepcopy(deck)
+    deck = prepare_deck(deck, 5)
+    deal_hands(deck, 3, player_list)
+    return company_list, player_list, deck, starting_deck
+
+
+def create_players_RL_with_static(no_players, no_humans, static_agents, num_static_agents):
+    """Create players with some using static agents"""
+    player_list = []
+    static_agents = static_agents or []
+    
+    # Add human players
+    for n in range(1, no_humans + 1):
+        player = Player(n, 10, [], [], set(), True)
+        player.pickup_strategy = human_pickup_strategy
+        player.putdown_strategy = human_putdown_strategy
+        player.static_agent = None
+        player_list.append(player)
+    
+    # Add AI players
+    ai_pool = build_bot_pool(pool_size_per_strategy=5)
+    num_ai_needed = no_players - no_humans
+    
+    # Add static agent players first
+    for i in range(num_static_agents):
+        player = Player(no_humans + i + 1, 10, [], [], set(), False)
+        player.pickup_strategy = None  # Will use static agent instead
+        player.putdown_strategy = None
+        player.static_agent = static_agents[i]
+        player_list.append(player)
+    
+    # Fill remaining slots with regular AI
+    remaining_ai_needed = num_ai_needed - num_static_agents
+    if remaining_ai_needed > 0:
+        chosen_ai = random.sample(ai_pool, remaining_ai_needed)
+        for i, ai in enumerate(chosen_ai, start=no_humans + num_static_agents + 1):
+            ai._number = i
+            ai.static_agent = None
+            player_list.append(ai)
     
     return player_list
 
@@ -1063,6 +1112,25 @@ STRATEGIES = {
     "random_avoid": (random_ai_pickup_strategy, avoid_loss_ai_putdown_strategy)
 }
 
+STRATEGIES_BENCHMARK = {
+    "random": (random_ai_pickup_strategy, random_ai_putdown_strategy),
+    "random_2": (random_ai_pickup_strategy, random_ai_putdown_strategy),
+    "random_3": (random_ai_pickup_strategy, random_ai_putdown_strategy),
+    "random_4": (random_ai_pickup_strategy, random_ai_putdown_strategy)
+}
+
+STRATEGIES_GOOD = {
+    "avoid_loss": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
+    "gain_money": (gain_money_ai_pickup_strategy, lose_unwanted_cards_ai_putdown_strategy),
+    "same_cards": (same_cards_ai_pickup_strategy, same_cards_ai_putdown_strategy)
+}
+
+STRATEGIES_BAD = {
+    "seek_loss": (seek_loss_ai_pickup_strategy, seek_loss_ai_putdown_strategy),
+    "different_cards": (different_cards_ai_pickup_strategy, different_cards_ai_putdown_strategy),
+    "random": (random_ai_pickup_strategy, random_ai_putdown_strategy)
+}
+
 def execute_pickup(player, action, market, deck):
     if action.type == "pickup_deck":
         picking_up_card(player, "pickup_deck", market, deck)
@@ -1114,7 +1182,7 @@ def simulate_end_game_and_score(player_list, company_list, player, starting_deck
             
             for p in player_list:
                 if p != majority_shareholder:
-                    player_shares_dict = get_card_dictionary(p._shares)
+                    player_shares_dict = get_card_dictionary(p._simulate_shares)
                     if company._name in player_shares_dict:  # Check if company exists in player's shares
                         coins = player_shares_dict[company._name]  # Use company._name, not company_name
                         p._simulate_coins -= coins
@@ -1134,11 +1202,11 @@ def simulate_end_game_and_score(player_list, company_list, player, starting_deck
 
     win_value = 0
     if player == winner:
-        win_value = 5
+        win_value = 6
     elif player == loser:
-        win_value = -5
+        win_value = -6
 
-    return (0.1 * player._simulate_coins) + (0.2 * distance_from_average) + win_value
+    return (0.1 * player._simulate_coins) + (0.5 * distance_from_average) + win_value
     """
     def expected_gain_per_suit(player_list, company_list, player):
         for company in company_list:
@@ -1187,9 +1255,3 @@ if __name__ == "__main__":
                     # but we've specified an action, which already includes the selected company
 
     end_game_and_score(player_list, company_list)
-
-
-
-
-
-        

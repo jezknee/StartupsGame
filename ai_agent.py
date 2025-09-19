@@ -69,7 +69,7 @@ def build_dpqn(lr, n_actions, input_dims, fcl_dims, fc2_dims):
     # this is very simple, even more so than PyTorch
 
 class Agent(object):
-    def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims, epsilon_dec, epsilon_end=0.01, mem_size=10000000, fname='dqn_model_6.keras'):
+    def __init__(self, alpha, gamma, n_actions, epsilon, batch_size, input_dims, epsilon_dec, epsilon_end=0.01, mem_size=500000, fname='dqn_model_6.keras', best_fname='startup_model_best'):
         # gamma is our discount factor, epsilon for explore / exploit
         # need to look up why you want epsilon to gradually decrease (maybe less exploring over time?)
         # epsilon doesn't become 0 in testing, as you always want some exploring
@@ -81,6 +81,7 @@ class Agent(object):
         self.epsilon_min = epsilon_end
         self.batch_size = batch_size
         self.model_file = fname
+        self.best_agent_file = best_fname
         self.learn_step_counter = 0
         self.target_update_freq = 5000  # adjust as needed (5000 medium, 10000 high, 1000 low)
 
@@ -162,5 +163,8 @@ class Agent(object):
     def save_model(self):
         self.q_eval.save(self.model_file)
 
+    def save_best_model(self):
+        self.q_eval.save(self.best_agent_file)
+    
     def load_model(self):
         self.q_eval = keras.models.load_model(self.model_file)

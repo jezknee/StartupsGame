@@ -10,8 +10,19 @@ import RL_environment2 as sr
 import pandas as pd
 from datetime import datetime
 import time
+import keras
 
 #sys.stdout = open("C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\startups_output.txt", "w")   # overwrite each run
+
+def load_static_agent(filepath):
+    class KerasStaticAgent:
+        def __init__(self, model_path):
+            self.model = keras.models.load_model(model_path)
+        
+        def predict(self, state):
+            return self.model.predict(state, verbose=0)
+    
+    return KerasStaticAgent(filepath)
 
 def plotLearning(x, scores, eps_history, filename):
     #print("Creating plot...")
@@ -61,18 +72,26 @@ if __name__ == '__main__':
     
     try:
         #print("Creating environment...")
-        env = sr.StartupsEnv(total_players=4, num_humans=0, default_company_list=default_companies)
+        
+        #static_agent_best = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+        #static_agent_best_2 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+        #static_agent_best_3 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+        #static_agent_best_4 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+
+        s_agents = None #[static_agent_best, static_agent_best_2, static_agent_best_3, static_agent_best_4]
+        # change the above if you do not want any old agents as players
+        env = sr.StartupsEnv(total_players=4, num_humans=0, default_company_list=default_companies, static_agents=s_agents)
         #print(f"Environment created successfully. Action space: {env.action_space}, Observation space: {env.observation_space}")
         
         epsilon_start = 1.0
         epsilon_end = 0.01
-        num_episodes = 50000
+        num_episodes = 1000
         k = 1.5
         epsilon_decay = (epsilon_end / epsilon_start) ** (1.0 / (k * num_episodes))
     
         #print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=1000000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_38.keras')
+        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=500000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_38.keras', best_fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_best.keras')
         #print("Agent created successfully")
         initial_weights = agent.q_eval.get_weights()[0].copy()
 
@@ -195,6 +214,17 @@ if __name__ == '__main__':
             
             if i % 1000 == 0 and i > 0:
                 pd.DataFrame(game_history).to_csv('C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\game_history.csv', index=False)
+                
+                #agent.save_best_model()
+
+                #static_agent_best = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                #static_agent_best_2 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                #static_agent_best_3 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                #static_agent_best_4 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                
+                #s_agents =  None #[static_agent_best, static_agent_best_2, static_agent_best_3, static_agent_best_4]
+                #env.static_agents = s_agents
+                
 
         # Final model save
         try:
