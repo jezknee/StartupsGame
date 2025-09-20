@@ -432,7 +432,7 @@ class StartupsEnv(Env):
 
     def _calculate_final_reward(self):
         rl_rank = self._calculate_player_rank() # 0 is best
-        reward_for_winning = 10
+        reward_for_winning = 15
         if rl_rank == 0:
             reward_given_rank = reward_for_winning + (len(self.player_list) - rl_rank - 1) * 3 #+ 0.1 * self.agent_player._coins
         #elif rl_rank == len(self.player_list) - 1:

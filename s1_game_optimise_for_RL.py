@@ -228,11 +228,9 @@ def create_players(no_players, no_humans):
         n += 1
     return player_list
 
-
-
 def build_bot_pool(pool_size_per_strategy=3):
     pool = []
-    for strat_name, (pickup, putdown) in STRATEGIES.items():
+    for strat_name, (pickup, putdown) in STRATEGIES_GOOD.items():
         for i in range(pool_size_per_strategy):
             player = Player(-1, 10, [], [], set(), False)  # temp number, fixed later
             player.pickup_strategy = pickup
@@ -1122,6 +1120,7 @@ STRATEGIES_BENCHMARK = {
 STRATEGIES_GOOD = {
     "avoid_loss": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
     "gain_money": (gain_money_ai_pickup_strategy, lose_unwanted_cards_ai_putdown_strategy),
+    "random": (random_ai_pickup_strategy, random_ai_putdown_strategy),
     "same_cards": (same_cards_ai_pickup_strategy, same_cards_ai_putdown_strategy)
 }
 
@@ -1202,11 +1201,11 @@ def simulate_end_game_and_score(player_list, company_list, player, starting_deck
 
     win_value = 0
     if player == winner:
-        win_value = 6
+        win_value = 1
     elif player == loser:
-        win_value = -6
+        win_value = -1
 
-    return (0.1 * player._simulate_coins) + (0.5 * distance_from_average) + win_value
+    return (0 * player._simulate_coins) + (0.5 * distance_from_average) + win_value
     """
     def expected_gain_per_suit(player_list, company_list, player):
         for company in company_list:
