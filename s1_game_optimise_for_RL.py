@@ -1119,9 +1119,10 @@ STRATEGIES_BENCHMARK = {
 
 STRATEGIES_GOOD = {
     "avoid_loss": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
-    "gain_money": (gain_money_ai_pickup_strategy, lose_unwanted_cards_ai_putdown_strategy),
-    "random": (random_ai_pickup_strategy, random_ai_putdown_strategy),
-    "same_cards": (same_cards_ai_pickup_strategy, same_cards_ai_putdown_strategy)
+    "avoid_loss_2": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy)
+    #"gain_money": (gain_money_ai_pickup_strategy, lose_unwanted_cards_ai_putdown_strategy),
+    #"random": (random_ai_pickup_strategy, random_ai_putdown_strategy),
+    #"same_cards": (same_cards_ai_pickup_strategy, same_cards_ai_putdown_strategy)
 }
 
 STRATEGIES_BAD = {
