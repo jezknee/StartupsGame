@@ -230,7 +230,7 @@ def create_players(no_players, no_humans):
 
 def build_bot_pool(pool_size_per_strategy=3):
     pool = []
-    for strat_name, (pickup, putdown) in STRATEGIES_GOOD.items():
+    for strat_name, (pickup, putdown) in STRATEGIES_BEST.items():
         for i in range(pool_size_per_strategy):
             player = Player(-1, 10, [], [], set(), False)  # temp number, fixed later
             player.pickup_strategy = pickup
@@ -1119,16 +1119,27 @@ STRATEGIES_BENCHMARK = {
 
 STRATEGIES_GOOD = {
     "avoid_loss": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
-    "avoid_loss_2": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy)
-    #"gain_money": (gain_money_ai_pickup_strategy, lose_unwanted_cards_ai_putdown_strategy),
+    "avoid_loss_2": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
+    "gain_money": (gain_money_ai_pickup_strategy, lose_unwanted_cards_ai_putdown_strategy),
     #"random": (random_ai_pickup_strategy, random_ai_putdown_strategy),
     #"same_cards": (same_cards_ai_pickup_strategy, same_cards_ai_putdown_strategy)
 }
 
+STRATEGIES_BEST = {
+    "avoid_loss": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy),
+    "avoid_loss_2": (avoid_loss_ai_pickup_strategy, avoid_loss_ai_putdown_strategy)
+}
+
 STRATEGIES_BAD = {
     "seek_loss": (seek_loss_ai_pickup_strategy, seek_loss_ai_putdown_strategy),
-    "different_cards": (different_cards_ai_pickup_strategy, different_cards_ai_putdown_strategy),
-    "random": (random_ai_pickup_strategy, random_ai_putdown_strategy)
+    "different_cards": (different_cards_ai_pickup_strategy, different_cards_ai_putdown_strategy)
+    #"random": (random_ai_pickup_strategy, random_ai_putdown_strategy)
+}
+
+STRATEGIES_SEEK_LOSS = {
+    "seek_loss": (seek_loss_ai_pickup_strategy, seek_loss_ai_putdown_strategy)
+
+    #"random": (random_ai_pickup_strategy, random_ai_putdown_strategy)
 }
 
 def execute_pickup(player, action, market, deck):
@@ -1251,7 +1262,5 @@ if __name__ == "__main__":
                 putdown_action = p.putdown_strategy(p, market, deck, player_list)
                 if putdown_action:
                     execute_putdown(p, putdown_action, player_list, market, company_list)
-                    # might need to charge this for putting down to market - it's getting company from the function definition
-                    # but we've specified an action, which already includes the selected company
 
     end_game_and_score(player_list, company_list)

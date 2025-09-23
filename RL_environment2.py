@@ -23,7 +23,7 @@ class StartupsEnv(Env):
         self.game_round = 0
         self.default_company_list = default_company_list
         self.static_agents = static_agents
-        self.num_static_agents = 0 #random.choice([0,len(static_agents)])
+        self.num_static_agents = random.choice([0,len(static_agents)])
         self.company_list, self.player_list, self.deck, self.starting_deck = sg.create_game_RL_with_static(self.default_company_list, self.total_players, self.num_humans, self.static_agents, self.num_static_agents)
         self.agent_player = self.random_RL_player_selection()
         self.other_players = [p for p in self.player_list if p != self.agent_player]
@@ -114,7 +114,7 @@ class StartupsEnv(Env):
 
     def reset(self):
         #self.static_agents = static_agents
-        self.num_static_agents = 0 #random.choice([0,len(self.static_agents)])
+        self.num_static_agents = random.choice([0,len(self.static_agents)])
         self.company_list, self.player_list, self.deck, self.starting_deck = sg.create_game_RL_with_static(self.default_company_list, self.total_players, self.num_humans, self.static_agents, self.num_static_agents)
         self.market = []
         self.game_round = 0

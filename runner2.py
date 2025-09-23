@@ -47,10 +47,7 @@ def plotLearning(x, scores, eps_history, filename):
         
         plt.tight_layout()
         plt.savefig(filename, dpi=300, bbox_inches='tight')
-        #print(f"Plot saved as {filename}")
-        #plt.show()
     except Exception as e:
-        #print(f"Error in plotting: {e}")
         traceback.print_exc()
 
 #print("Script starting...")
@@ -59,10 +56,6 @@ learn_interval = 8  # Learn every 4 steps
 global_step_count = 0  # Track total steps across all episodes
 episode_count = 0
 
-#import cProfile, pstats
-
-#with cProfile.Profile() as pr:
-    # call your main training function here
 
 if __name__ == '__main__':
     #print("Main block entered")
@@ -73,12 +66,12 @@ if __name__ == '__main__':
     try:
         #print("Creating environment...")
         
-        #static_agent_best = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
-        #static_agent_best_2 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
-        #static_agent_best_3 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
-        #static_agent_best_4 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+        static_agent_best = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_42.keras")
+        static_agent_best_2 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_42.keras")
+        static_agent_best_3 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_42.keras")
+        static_agent_best_4 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_42.keras")
 
-        s_agents = None #[static_agent_best, static_agent_best_2, static_agent_best_3, static_agent_best_4]
+        s_agents = [static_agent_best, static_agent_best_2, static_agent_best_3, static_agent_best_4]
         # change the above if you do not want any old agents as players
         env = sr.StartupsEnv(total_players=4, num_humans=0, default_company_list=default_companies, static_agents=s_agents)
         #print(f"Environment created successfully. Action space: {env.action_space}, Observation space: {env.observation_space}")
@@ -91,7 +84,7 @@ if __name__ == '__main__':
     
         #print("Creating agent...")
         # make input_dims match the observation space without hardcoding
-        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=1.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=500000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_42.keras', best_fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_best.keras')
+        agent = Agent(alpha=0.0001, gamma=0.99, n_actions=env.action_space.n, epsilon=0.0, batch_size=128, input_dims=env.observation_space.shape[0], epsilon_dec=epsilon_decay, epsilon_end=epsilon_end, mem_size=500000, fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_42.keras', best_fname='C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\StartupsGame\\startup_model_best.keras')
         #print("Agent created successfully")
         initial_weights = agent.q_eval.get_weights()[0].copy()
 
@@ -143,9 +136,9 @@ if __name__ == '__main__':
 
                         global_step_count += 1
                         
-                        if (global_step_count % learn_interval == 0 and 
-                            agent.memory.mem_cntr > agent.batch_size):
-                            agent.learn()
+                        #if (global_step_count % learn_interval == 0 and 
+                        #    agent.memory.mem_cntr > agent.batch_size):
+                        #    agent.learn()
                         
                         #print(f"Action {action}, Reward: {reward}, Score: {score}")
                         
@@ -165,8 +158,8 @@ if __name__ == '__main__':
                     traceback.print_exc()
                     break
 
-            if done and (agent.memory.mem_cntr > agent.batch_size):
-                agent.learn() 
+            #if done and (agent.memory.mem_cntr > agent.batch_size):
+            #    agent.learn() 
             
             if step_count >= max_steps:
                 pass
@@ -215,15 +208,15 @@ if __name__ == '__main__':
             if i % 1000 == 0 and i > 0:
                 pd.DataFrame(game_history).to_csv('C:\\Users\\jezkn\\OneDrive\\Documents\\Startups\\game_history.csv', index=False)
                 
-                #agent.save_best_model()
+                agent.save_best_model()
 
-                #static_agent_best = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
-                #static_agent_best_2 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
-                #static_agent_best_3 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
-                #static_agent_best_4 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                static_agent_best = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                static_agent_best_2 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                static_agent_best_3 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
+                static_agent_best_4 = load_static_agent(r"C:\Users\jezkn\OneDrive\Documents\Startups\startup_model_best.keras")
                 
-                #s_agents =  None #[static_agent_best, static_agent_best_2, static_agent_best_3, static_agent_best_4]
-                #env.static_agents = s_agents
+                s_agents =  None #[static_agent_best, static_agent_best_2, static_agent_best_3, static_agent_best_4]
+                env.static_agents = s_agents
                 
 
         # Final model save
